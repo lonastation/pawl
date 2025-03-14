@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,10 +42,19 @@ fun NfcCardListScreen(
     val hasDefaultCard by viewModel.hasDefaultCard.collectAsState()
     val defaultCard by viewModel.defaultCard.collectAsState()
     val logs by viewModel.logs.collectAsState()
+    val isDiscovering by viewModel.isDiscovering.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize()
     ) {
+        if (isDiscovering) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
+        }
+
         // Cards section (top half)
         Column(
             modifier = Modifier

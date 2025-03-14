@@ -1,8 +1,14 @@
 package com.linn.pawl
 
+import NfcPermissionHandler
+import NfcStatus
+import android.app.PendingIntent
+import android.content.Intent
+import android.nfc.NfcAdapter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -18,18 +24,70 @@ class MainActivity : ComponentActivity() {
         AppViewModelProvider.Factory 
     }
 
+    private var nfcAdapter: NfcAdapter? = null
+    private val nfcSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        checkNfcState()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize NFC adapter
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+
         setContent {
             PawlTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NfcCardListScreen(viewModel = viewModel)
+                    NfcPermissionHandler {
+                        NfcCardListScreen(viewModel = viewModel)
+                    }
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkNfcState()
+    }
+
+    private fun checkNfcState() {
+        when {
+            nfcAdapter == null -> {
+                // Device doesn't support NFC
+                viewModel.updateNfcStatus(NfcStatus.NOT_SUPPORTED)
+            }
+            !nfcAdapter!!.isEnabled -> {
+                // NFC is not enabled
+                viewModel.updateNfcStatus(NfcStatus.DISABLED)
+            }
+            else -> {
+                // NFC is available and enabled
+                viewModel.updateNfcStatus(NfcStatus.ENABLED)
+                nfcAdapter?.enableForegroundDispatch(
+                    this,
+                    getPendingIntent(),
+                    null,
+                    null
+                )
+            }
+        }
+    }
+
+    private fun getPendingIntent(): PendingIntent {
+        val intent = Intent(this, javaClass).apply {
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        }
+        return PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
     }
 }

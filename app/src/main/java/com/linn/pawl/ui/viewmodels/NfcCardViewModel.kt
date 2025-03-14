@@ -1,5 +1,6 @@
 package com.linn.pawl.ui.viewmodels
 
+import NfcStatus
 import android.app.Application
 import android.nfc.NfcAdapter
 import android.nfc.NfcManager
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
+import com.linn.pawl.nfc.NfcCardReader
 
 class NfcCardViewModel(application: Application, private val cardRepository: CardRepository) :
     AndroidViewModel(application) {
@@ -52,12 +54,36 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
         nfcManager?.defaultAdapter
     }
 
+    private val _nfcStatus = MutableStateFlow<NfcStatus>(NfcStatus.DISABLED)
+    val nfcStatus: StateFlow<NfcStatus> = _nfcStatus.asStateFlow()
+
+    private val nfcCardReader = NfcCardReader(application)
+    private val _isDiscovering = MutableStateFlow(false)
+    val isDiscovering: StateFlow<Boolean> = _isDiscovering.asStateFlow()
+
     init {
         checkNfcAvailability()
+        discoverExistingCards()
     }
 
     private fun checkNfcAvailability() {
         _isNfcAvailable.value = nfcAdapter != null && nfcAdapter?.isEnabled == true
+    }
+
+    private fun discoverExistingCards() {
+        viewModelScope.launch {
+            _isDiscovering.value = true
+            try {
+                val existingCards = nfcCardReader.discoverExistingCards()
+                existingCards.forEach { card ->
+                    cardRepository.insertCard(NfcCardEntity.fromNfcCard(card))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isDiscovering.value = false
+            }
+        }
     }
 
     fun handleNfcTag(tag: Tag?) {
@@ -140,5 +166,9 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
             sb.append(String.format("%02x", b))
         }
         return sb.toString()
+    }
+
+    fun updateNfcStatus(status: NfcStatus) {
+        _nfcStatus.value = status
     }
 } 
