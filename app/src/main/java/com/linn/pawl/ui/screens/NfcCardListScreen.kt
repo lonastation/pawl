@@ -42,9 +42,7 @@ fun NfcCardListScreen(
     viewModel: NfcCardViewModel,
     modifier: Modifier = Modifier
 ) {
-    val cards by viewModel.cards.collectAsState()
     val defaultCard by viewModel.defaultCard.collectAsState()
-    val hasDefaultCard by viewModel.hasDefaultCard.collectAsState()
     val logs by viewModel.logs.collectAsState()
     val isReadingNewCard by viewModel.isReadingNewCard.collectAsState()
 

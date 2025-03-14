@@ -2,20 +2,23 @@ package com.linn.pawl.ui.viewmodels
 
 import NfcStatus
 import android.app.Application
+import android.content.ComponentName
 import android.nfc.NfcAdapter
 import android.nfc.NfcManager
 import android.nfc.Tag
+import android.nfc.cardemulation.CardEmulation
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.PawlApplication
 import com.linn.pawl.data.CardRepository
 import com.linn.pawl.data.NfcCardEntity
 import com.linn.pawl.data.NfcLogEntity
 import com.linn.pawl.model.NfcCard
+import com.linn.pawl.service.YourHceService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -30,12 +33,7 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
     private val _defaultCard = MutableStateFlow<NfcCard?>(null)
     val defaultCard: StateFlow<NfcCard?> = _defaultCard.asStateFlow()
 
-    val hasDefaultCard: StateFlow<Boolean> = defaultCard.map { it != null }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
-
-    val cards: StateFlow<List<NfcCard>> = cardRepository.getAllCards()
-        .map { entities -> entities.map { it.toNfcCard() } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val hasDefaultCard = cardRepository.hasDefaultCard()
 
     val logs: StateFlow<List<NfcLogEntity>> = cardRepository.getAllLogs()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -47,6 +45,10 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
 
     private val _nfcStatus = MutableStateFlow<NfcStatus>(NfcStatus.DISABLED)
     val nfcStatus: StateFlow<NfcStatus> = _nfcStatus.asStateFlow()
+
+    private val cardEmulationManager by lazy {
+        getApplication<Application>().getSystemService(CardEmulation::class.java)
+    }
 
     init {
         checkNfcAvailability()
@@ -88,6 +90,13 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
         viewModelScope.launch {
             cardRepository.insertCard(NfcCardEntity.fromNfcCard(card))
             cardRepository.setDefaultCard(card.id)
+            
+            // Set as preferred HCE service
+            cardEmulationManager?.let { manager ->
+                val componentName = ComponentName(getApplication<Application>(), YourHceService::class.java)
+                manager.setPreferredService(getApplication<PawlApplication>().currentActivity, componentName)
+            }
+            
             stopReadingNewCard()
         }
     }

@@ -14,23 +14,41 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.linn.pawl.ui.AppViewModelProvider
 import com.linn.pawl.ui.screens.NfcCardListScreen
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.viewmodels.NfcCardViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel: NfcCardViewModel by viewModels {
         AppViewModelProvider.Factory
     }
 
-    private var nfcAdapter: NfcAdapter? = null
+    private val nfcAdapter: NfcAdapter? by lazy {
+        NfcAdapter.getDefaultAdapter(this)
+    }
+    private val pendingIntent: PendingIntent by lazy {
+        PendingIntent.getActivity(
+            this, 0,
+            Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_MUTABLE
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize NFC adapter
-        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        // Check for default card and set appropriate scanning mode
+        lifecycleScope.launch {
+            viewModel.hasDefaultCard.collect { hasCard ->
+                if (!hasCard) {
+                    // No default card found, start scanning for new card
+                    viewModel.startReadingNewCard()
+                }
+            }
+        }
 
         setContent {
             PawlTheme {
@@ -48,7 +66,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        (application as PawlApplication).currentActivity = this
         checkNfcState()
+        nfcAdapter?.enableForegroundDispatch(
+            this,
+            pendingIntent,
+            null,
+            null
+        )
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (application as PawlApplication).currentActivity = null
+        nfcAdapter?.disableForegroundDispatch(this)
     }
 
     private fun checkNfcState() {
@@ -66,26 +97,8 @@ class MainActivity : ComponentActivity() {
             else -> {
                 // NFC is available and enabled
                 viewModel.updateNfcStatus(NfcStatus.ENABLED)
-                nfcAdapter?.enableForegroundDispatch(
-                    this,
-                    getPendingIntent(),
-                    null,
-                    null
-                )
             }
         }
-    }
-
-    private fun getPendingIntent(): PendingIntent {
-        val intent = Intent(this, javaClass).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        return PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
     }
 
     override fun onNewIntent(intent: Intent) {

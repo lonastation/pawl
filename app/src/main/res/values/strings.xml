@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">pawl</string>
+    <string name="service_description">service_description</string>
+    <string name="aid_description">aid_description</string>
 </resources>
