@@ -11,23 +11,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.linn.pawl.data.NfcLogEntity
 import com.linn.pawl.model.NfcCard
+import com.linn.pawl.ui.components.SelectDefaultCardDialog
 import com.linn.pawl.ui.viewmodels.NfcCardViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -39,138 +42,85 @@ fun NfcCardListScreen(
     modifier: Modifier = Modifier
 ) {
     val cards by viewModel.cards.collectAsState()
-    val hasDefaultCard by viewModel.hasDefaultCard.collectAsState()
     val defaultCard by viewModel.defaultCard.collectAsState()
     val logs by viewModel.logs.collectAsState()
-    val isDiscovering by viewModel.isDiscovering.collectAsState()
+    var showSelectDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        if (isDiscovering) {
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            )
-        }
-
-        // Cards section (top half)
-        Column(
+        // Default Card Section
+        Card(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Default card section
-            if (!hasDefaultCard && cards.isNotEmpty()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "No Default Card Set",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Please select a default card from the list below",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-
-            defaultCard?.let { card ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Default Card",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        NfcCardContent(card = card)
-                    }
-                }
-            }
-
-            // Other cards
-            cards.filter { it.id != defaultCard?.id }.forEach { card ->
-                NfcCardItem(
-                    card = card,
-                    onSetDefault = { viewModel.setDefaultCard(card.id) }
-                )
-            }
-        }
-
-        // Logs section (bottom half)
-        Column(
-            modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
-        ) {
-            Text(
-                text = "NFC Tap Logs",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(16.dp)
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             )
-            
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                items(
-                    items = logs,
-                    key = { log -> log.id }  // Using the unique ID as the key
-                ) { log ->
-                    NfcLogItem(log = log)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Default NFC Card",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    IconButton(onClick = { showSelectDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit default card"
+                        )
+                    }
                 }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                if (defaultCard != null) {
+                    NfcCardContent(card = defaultCard!!)
+                } else {
+                    Text(
+                        text = "No default card selected",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+
+        // NFC Logs Section
+        Text(
+            text = "NFC Card Logs",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(logs) { log ->
+                NfcLogItem(log = log)
             }
         }
     }
-}
 
-@Composable
-fun NfcCardItem(
-    card: NfcCard,
-    onSetDefault: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    NfcCardContent(card = card)
-                }
-                TextButton(onClick = onSetDefault) {
-                    Text("Set as Default")
-                }
-            }
-        }
+    // Select Default Card Dialog
+    if (showSelectDialog) {
+        SelectDefaultCardDialog(
+            cards = cards,
+            onCardSelected = { card ->
+                viewModel.setDefaultCard(card.id)
+                showSelectDialog = false
+            },
+            onDismiss = { showSelectDialog = false }
+        )
     }
 }
 
@@ -181,27 +131,23 @@ fun NfcCardContent(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = card.id,
+            text = card.type,
             style = MaterialTheme.typography.titleMedium
         )
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Type: ${card.type}",
+            text = "ID: ${card.id}",
             style = MaterialTheme.typography.bodyMedium
         )
         if (card.description.isNotEmpty()) {
             Text(
                 text = card.description,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                style = MaterialTheme.typography.bodyMedium
             )
         }
         Text(
-            text = "Last read: ${
-                SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()).format(
-                    Date(card.lastReadTime)
-                )
+            text = "Last used: ${
+                SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+                    .format(Date(card.lastReadTime))
             }",
             style = MaterialTheme.typography.bodySmall
         )
