@@ -50,7 +50,7 @@ class NfcCardReader(private val context: Context) {
                 cards.add(
                     NfcCard(
                         id = componentName.flattenToString(),
-                        type = if (isDefault) "Default Payment Card" else "Payment Card",
+                        type = if (isDefault) "Default Card" else "Payment Card",
                         lastReadTime = System.currentTimeMillis(),
                         description = "From $appLabel"
                     )

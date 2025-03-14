@@ -18,9 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.nfc.cardemulation.CardEmulation
 
 class NfcCardViewModel(application: Application, private val cardRepository: CardRepository) :
     AndroidViewModel(application) {
@@ -47,7 +44,6 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
     val nfcStatus: StateFlow<NfcStatus> = _nfcStatus.asStateFlow()
 
     private val nfcCardReader = NfcCardReader(application)
-    private val _isDiscovering = MutableStateFlow(false)
 
     init {
         checkNfcAvailability()
