@@ -5,6 +5,7 @@ import NfcStatus
 import android.app.PendingIntent
 import android.content.Intent
 import android.nfc.NfcAdapter
+import android.nfc.Tag
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -85,5 +86,23 @@ class MainActivity : ComponentActivity() {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == NfcAdapter.ACTION_TAG_DISCOVERED ||
+            intent.action == NfcAdapter.ACTION_TECH_DISCOVERED ||
+            intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED
+        ) {
+            // For Android 13 (API 33) and above
+            val tag =
+                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+
+            if (viewModel.isReadingNewCard.value) {
+                viewModel.handleNewNfcTag(tag)
+            } else {
+                viewModel.handleNfcTag(tag)
+            }
+        }
     }
 }

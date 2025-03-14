@@ -9,28 +9,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.linn.pawl.data.NfcLogEntity
 import com.linn.pawl.model.NfcCard
-import com.linn.pawl.ui.components.SelectDefaultCardDialog
 import com.linn.pawl.ui.viewmodels.NfcCardViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -43,8 +44,15 @@ fun NfcCardListScreen(
 ) {
     val cards by viewModel.cards.collectAsState()
     val defaultCard by viewModel.defaultCard.collectAsState()
+    val hasDefaultCard by viewModel.hasDefaultCard.collectAsState()
     val logs by viewModel.logs.collectAsState()
-    var showSelectDialog by remember { mutableStateOf(false) }
+    val isReadingNewCard by viewModel.isReadingNewCard.collectAsState()
+
+    if (isReadingNewCard) {
+        ReadNewCardDialog(
+            onDismiss = { viewModel.stopReadingNewCard() }
+        )
+    }
 
     Column(
         modifier = modifier.fillMaxSize()
@@ -70,10 +78,12 @@ fun NfcCardListScreen(
                         text = "Default NFC Card",
                         style = MaterialTheme.typography.titleLarge
                     )
-                    IconButton(onClick = { showSelectDialog = true }) {
+                    IconButton(
+                        onClick = { viewModel.startReadingNewCard() }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit default card"
+                            contentDescription = "Set new default card"
                         )
                     }
                 }
@@ -109,18 +119,6 @@ fun NfcCardListScreen(
                 NfcLogItem(log = log)
             }
         }
-    }
-
-    // Select Default Card Dialog
-    if (showSelectDialog) {
-        SelectDefaultCardDialog(
-            cards = cards,
-            onCardSelected = { card ->
-                viewModel.setDefaultCard(card.id)
-                showSelectDialog = false
-            },
-            onDismiss = { showSelectDialog = false }
-        )
     }
 }
 
@@ -191,4 +189,36 @@ fun NfcLogItem(
             )
         }
     }
+}
+
+@Composable
+fun ReadNewCardDialog(
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Reading New Card")
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Hold a NFC card against your device to set it as default",
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 } 
