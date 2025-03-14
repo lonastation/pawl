@@ -107,7 +107,12 @@ class NfcCardViewModel(application: Application, private val cardRepository: Car
         val id = bytesToHexString(tag.id)
         viewModelScope.launch {
             if (id != null) {
-                cardRepository.setDefaultCard(id)
+                // Only log the tap event, don't change the default card
+                cardRepository.insertLog(NfcLogEntity(
+                    cardId = id,
+                    cardType = "Card tapped",
+                    timestamp = System.currentTimeMillis()
+                ))
             }
         }
     }
