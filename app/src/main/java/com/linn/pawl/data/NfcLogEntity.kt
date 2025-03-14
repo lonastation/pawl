@@ -3,11 +3,11 @@ package com.linn.pawl.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "card")
-data class Card(
+@Entity(tableName = "nfc_logs")
+data class NfcLogEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val name: String,
-    val code: String,
-    val value: String,
-)
+    val cardId: String,
+    val timestamp: Long,
+    val cardType: String
+) 
