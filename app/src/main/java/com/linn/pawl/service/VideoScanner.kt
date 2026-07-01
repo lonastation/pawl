@@ -10,6 +10,11 @@ import javax.inject.Inject
 
 class VideoScanner @Inject constructor() {
 
+    // 时长容差（毫秒），考虑到编码精度，允许微小差异
+    private val DURATION_TOLERANCE_MS = 500L
+    // 文件大小容差（字节），允许微小差异
+    private val SIZE_TOLERANCE_BYTES = 1024L * 10 // 10KB
+
     suspend fun findSimilarVideos(
         videos: List<VideoFile>,
         onProgress: (Int) -> Unit
@@ -17,20 +22,145 @@ class VideoScanner @Inject constructor() {
 
         if (videos.size < 2) return@withContext emptyList()
 
-        // 提取每个视频的签名
-        val signatures = mutableMapOf<String, VideoSignature>()
-        videos.forEachIndexed { index, video ->
-            try {
-                val signature = extractHeaderSignature(video.path)
-                signature?.let { signatures[video.path] = it }
-            } catch (e: Exception) {
-                // 跳过无法分析的视频
-                e.printStackTrace()
-            }
-            onProgress(index + 1)
+        // === 第一层：按时长分组 ===
+        val durationGroups = groupByDuration(videos)
+
+        // === 第二层：在每个时长组内，按文件大小分组 ===
+        val candidateGroups = mutableListOf<List<VideoFile>>()
+        durationGroups.forEach { group ->
+            val sizeGroups = groupBySize(group)
+            candidateGroups.addAll(sizeGroups)
         }
 
-        // 分组相似视频
+        // 如果没有候选组，直接返回空
+        if (candidateGroups.isEmpty()) {
+            return@withContext emptyList()
+        }
+
+        // === 第三层：对候选组进行深度分析 ===
+        val resultGroups = mutableListOf<DuplicateGroup>()
+        var processedCount = 0
+        val totalCandidates = candidateGroups.sumOf { it.size }
+
+        candidateGroups.forEach { candidateGroup ->
+            if (candidateGroup.size < 2) return@forEach
+
+            // 提取候选组内每个视频的签名
+            val signatures = mutableMapOf<String, VideoSignature>()
+            candidateGroup.forEach { video ->
+                try {
+                    val signature = extractHeaderSignature(video.path)
+                    signature?.let { signatures[video.path] = it }
+                } catch (e: Exception) {
+                    // 跳过无法分析的视频
+                    e.printStackTrace()
+                }
+                processedCount++
+                onProgress(processedCount)
+            }
+
+            // 在候选组内进行比对
+            val similarGroups = findSimilarInGroup(signatures)
+            resultGroups.addAll(similarGroups)
+        }
+
+        resultGroups
+    }
+
+    /**
+     * 第一层：按时长分组
+     * 时长相差在容差范围内的归为一组
+     */
+    private fun groupByDuration(videos: List<VideoFile>): List<List<VideoFile>> {
+        val groups = mutableListOf<List<VideoFile>>()
+        val processed = mutableSetOf<String>()
+
+        for (i in videos.indices) {
+            val video1 = videos[i]
+            if (video1.path in processed) continue
+
+            val group = mutableListOf(video1)
+            for (j in i + 1 until videos.size) {
+                val video2 = videos[j]
+                if (video2.path in processed) continue
+
+                if (isDurationSimilar(video1.duration, video2.duration)) {
+                    group.add(video2)
+                    processed.add(video2.path)
+                }
+            }
+
+            if (group.size > 1) {
+                groups.add(group)
+            }
+            processed.add(video1.path)
+        }
+
+        return groups
+    }
+
+    /**
+     * 第二层：按文件大小分组
+     * 在时长相近的组内，进一步按文件大小分组
+     */
+    private fun groupBySize(videos: List<VideoFile>): List<List<VideoFile>> {
+        val groups = mutableListOf<List<VideoFile>>()
+        val processed = mutableSetOf<String>()
+
+        for (i in videos.indices) {
+            val video1 = videos[i]
+            if (video1.path in processed) continue
+
+            val group = mutableListOf(video1)
+            for (j in i + 1 until videos.size) {
+                val video2 = videos[j]
+                if (video2.path in processed) continue
+
+                if (isSizeSimilar(video1.size, video2.size)) {
+                    group.add(video2)
+                    processed.add(video2.path)
+                }
+            }
+
+            if (group.size > 1) {
+                groups.add(group)
+            }
+            processed.add(video1.path)
+        }
+
+        return groups
+    }
+
+    /**
+     * 判断两个时长是否相似
+     */
+    private fun isDurationSimilar(duration1: Long, duration2: Long): Boolean {
+        return kotlin.math.abs(duration1 - duration2) <= DURATION_TOLERANCE_MS
+    }
+
+    /**
+     * 判断两个文件大小是否相似
+     */
+    private fun isSizeSimilar(size1: Long, size2: Long): Boolean {
+        // 如果大小完全相同，直接返回true
+        if (size1 == size2) return true
+
+        // 如果大小接近，返回true
+        if (kotlin.math.abs(size1 - size2) <= SIZE_TOLERANCE_BYTES) return true
+
+        // 如果大小差异在2%以内，也认为可能相似（用于不同编码版本）
+        val diffPercent = kotlin.math.abs(size1 - size2).toDouble() / maxOf(size1, size2)
+        return diffPercent <= 0.02
+    }
+
+    /**
+     * 在候选组内查找相似视频
+     */
+    private fun findSimilarInGroup(
+        signatures: Map<String, VideoSignature>
+    ): List<DuplicateGroup> {
+        if (signatures.size < 2) return emptyList()
+
         val groups = mutableListOf<DuplicateGroup>()
         val processed = mutableSetOf<String>()
 
@@ -56,10 +186,12 @@ class VideoScanner @Inject constructor() {
             processed.add(path1)
         }
 
-        // 按组大小降序排列
-        groups.sortedByDescending { it.videos.size }
+        return groups
     }
 
+    /**
+     * 提取视频开头的特征签名
+     */
     private fun extractHeaderSignature(videoPath: String): VideoSignature? {
         var extractor: MediaExtractor? = null
         try {
@@ -69,18 +201,24 @@ class VideoScanner @Inject constructor() {
 
             // 寻找视频轨道
             var videoTrackIndex = -1
+            var videoFormat: MediaFormat? = null
             for (i in 0 until extractor.trackCount) {
                 val format = extractor.getTrackFormat(i)
                 val mime = format.getString(MediaFormat.KEY_MIME)
                 if (mime?.startsWith("video/") == true) {
                     videoTrackIndex = i
+                    videoFormat = format
                     break
                 }
             }
 
-            if (videoTrackIndex == -1) {
+            if (videoTrackIndex == -1 || videoFormat == null) {
                 return null
             }
+
+            // 获取视频分辨率
+            val width = videoFormat.getInteger(MediaFormat.KEY_WIDTH)
+            val height = videoFormat.getInteger(MediaFormat.KEY_HEIGHT)
 
             extractor.selectTrack(videoTrackIndex)
 
@@ -106,7 +244,9 @@ class VideoScanner @Inject constructor() {
 
             return VideoSignature(
                 keyFrameTimes = keyFrameTimes,
-                frameCount = keyFrameTimes.size
+                frameCount = keyFrameTimes.size,
+                width = width,
+                height = height
             )
         } catch (e: Exception) {
             return null
@@ -115,7 +255,15 @@ class VideoScanner @Inject constructor() {
         }
     }
 
+    /**
+     * 判断两个签名是否相似
+     */
     private fun areSimilar(sig1: VideoSignature, sig2: VideoSignature): Boolean {
+        // 分辨率不同，直接判定不相似（如果分辨率不同不可能是同一个视频）
+        if (sig1.width != sig2.width || sig1.height != sig2.height) {
+            return false
+        }
+
         val times1 = sig1.keyFrameTimes
         val times2 = sig2.keyFrameTimes
 
@@ -140,6 +288,8 @@ class VideoScanner @Inject constructor() {
 
     private data class VideoSignature(
         val keyFrameTimes: List<Long>,
-        val frameCount: Int
+        val frameCount: Int,
+        val width: Int,
+        val height: Int
     )
 }
