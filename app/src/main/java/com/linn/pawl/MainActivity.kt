@@ -1,121 +1,237 @@
 package com.linn.pawl
 
-import NfcPermissionHandler
-import NfcStatus
-import android.app.PendingIntent
-import android.content.Intent
-import android.nfc.NfcAdapter
-import android.nfc.Tag
+
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
-import com.linn.pawl.ui.AppViewModelProvider
-import com.linn.pawl.ui.screens.NfcCardListScreen
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.linn.pawl.ui.theme.PawlTheme
-import com.linn.pawl.ui.viewmodels.NfcCardViewModel
-import kotlinx.coroutines.launch
+import com.linn.pawl.ui.viewmodels.DuplicateGroup
+import com.linn.pawl.ui.viewmodels.VideoScannerViewModel
+import java.io.File
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: NfcCardViewModel by viewModels {
-        AppViewModelProvider.Factory
-    }
-
-    private val nfcAdapter: NfcAdapter? by lazy {
-        NfcAdapter.getDefaultAdapter(this)
-    }
-    private val pendingIntent: PendingIntent by lazy {
-        PendingIntent.getActivity(
-            this, 0,
-            Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_MUTABLE
-        )
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Check for default card and set appropriate scanning mode
-        lifecycleScope.launch {
-            viewModel.hasDefaultCard.collect { hasCard ->
-                if (!hasCard) {
-                    // No default card found, start scanning for new card
-                    viewModel.startReadingNewCard()
-                }
-            }
-        }
-
         setContent {
             PawlTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NfcPermissionHandler {
-                        NfcCardListScreen(viewModel = viewModel)
-                    }
+                    VideoScannerApp()
                 }
             }
         }
     }
+}
 
-    override fun onResume() {
-        super.onResume()
-        (application as PawlApplication).currentActivity = this
-        checkNfcState()
-        nfcAdapter?.enableForegroundDispatch(
-            this,
-            pendingIntent,
-            null,
-            null
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VideoScannerApp(
+    viewModel: VideoScannerViewModel = viewModel()
+) {
+    // 使用 collectAsStateWithLifecycle 或 collectAsState 来收集 StateFlow
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Android 13+ 权限请求
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            viewModel.startScan()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // 标题
+        Text(
+            text = "🐾 Paw Lens",
+            fontSize = 32.sp,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-    }
 
-    override fun onPause() {
-        super.onPause()
-        (application as PawlApplication).currentActivity = null
-        nfcAdapter?.disableForegroundDispatch(this)
-    }
-
-    private fun checkNfcState() {
-        when {
-            nfcAdapter == null -> {
-                // Device doesn't support NFC
-                viewModel.updateNfcStatus(NfcStatus.NOT_SUPPORTED)
-            }
-
-            !nfcAdapter!!.isEnabled -> {
-                // NFC is not enabled
-                viewModel.updateNfcStatus(NfcStatus.DISABLED)
-            }
-
-            else -> {
-                // NFC is available and enabled
-                viewModel.updateNfcStatus(NfcStatus.ENABLED)
-            }
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        if (intent.action == NfcAdapter.ACTION_TAG_DISCOVERED ||
-            intent.action == NfcAdapter.ACTION_TECH_DISCOVERED ||
-            intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED
+        // 扫描按钮
+        Button(
+            onClick = {
+                // Android 13+ 需要请求新的视频权限
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.READ_MEDIA_VIDEO
+                    )
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            enabled = !uiState.isScanning
         ) {
-            // For Android 13 (API 33) and above
-            val tag =
-                intent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
-
-            if (viewModel.isReadingNewCard.value) {
-                viewModel.handleNewNfcTag(tag)
+            if (uiState.isScanning) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("扫描中... ${uiState.scannedCount}/${uiState.totalVideos}")
             } else {
-                viewModel.handleNfcTag(tag)
+                Text("🔍 开始扫描", fontSize = 18.sp)
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 统计信息
+        if (uiState.totalVideos > 0) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("📹 总数", fontSize = 12.sp)
+                        Text("${uiState.totalVideos}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("📊 相似组", fontSize = 12.sp)
+                        Text("${uiState.duplicateGroups.size}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🔄 重复", fontSize = 12.sp)
+                        Text("${uiState.totalDuplicates}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // 结果显示
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(uiState.duplicateGroups) { group ->
+                DuplicateGroupCard(group = group)
+            }
+        }
+    }
+}
+
+@Composable
+fun DuplicateGroupCard(group: DuplicateGroup) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "📁 相似视频组",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "${group.videos.size} 个文件",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            group.videos.forEachIndexed { index, videoPath ->
+                val file = File(videoPath)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${index + 1}.",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = file.name,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                    Text(
+                        text = formatFileSize(file.length()),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatFileSize(size: Long): String {
+    return when {
+        size < 1024 -> "$size B"
+        size < 1024 * 1024 -> "${size / 1024} KB"
+        size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
+        else -> "${size / (1024 * 1024 * 1024)} GB"
     }
 }

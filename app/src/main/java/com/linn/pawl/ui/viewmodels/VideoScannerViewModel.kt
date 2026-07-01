@@ -1,0 +1,122 @@
+package com.linn.pawl.ui.viewmodels
+
+import android.content.Context
+import android.provider.MediaStore
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.linn.pawl.service.VideoScanner
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.io.File
+import javax.inject.Inject
+
+@HiltViewModel
+class VideoScannerViewModel @Inject constructor(
+    private val context: Context,
+    private val videoScanner: VideoScanner
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    fun startScan() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isScanning = true,
+                duplicateGroups = emptyList(),
+                totalVideos = 0,
+                scannedCount = 0,
+                totalDuplicates = 0
+            )
+
+            // 获取所有视频
+            val allVideos = getAllVideos()
+            _uiState.value = _uiState.value.copy(
+                totalVideos = allVideos.size
+            )
+
+            // 分析并分组相似视频
+            val groups = videoScanner.findSimilarVideos(
+                videos = allVideos,
+                onProgress = { scanned ->
+                    _uiState.value = _uiState.value.copy(
+                        scannedCount = scanned
+                    )
+                }
+            )
+
+            // 计算重复总数
+            val totalDuplicates = groups.sumOf { it.videos.size } - groups.size
+
+            _uiState.value = _uiState.value.copy(
+                isScanning = false,
+                duplicateGroups = groups,
+                totalDuplicates = totalDuplicates
+            )
+        }
+    }
+
+    private fun getAllVideos(): List<VideoFile> {
+        val videos = mutableListOf<VideoFile>()
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DURATION
+        )
+
+        val cursor = context.contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            null,
+            null,
+            "${MediaStore.Video.Media.DATE_ADDED} DESC"
+        )
+
+        cursor?.use {
+            val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+            val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+
+            while (it.moveToNext()) {
+                val path = it.getString(dataColumn) ?: continue
+                if (File(path).exists()) {
+                    videos.add(
+                        VideoFile(
+                            path = path,
+                            name = it.getString(nameColumn) ?: "unknown",
+                            size = it.getLong(sizeColumn),
+                            duration = it.getLong(durationColumn)
+                        )
+                    )
+                }
+            }
+        }
+
+        return videos
+    }
+
+    data class UiState(
+        val isScanning: Boolean = false,
+        val totalVideos: Int = 0,
+        val scannedCount: Int = 0,
+        val totalDuplicates: Int = 0,
+        val duplicateGroups: List<DuplicateGroup> = emptyList()
+    )
+}
+
+data class VideoFile(
+    val path: String,
+    val name: String,
+    val size: Long,
+    val duration: Long
+)
+
+data class DuplicateGroup(
+    val videos: List<String>
+)
