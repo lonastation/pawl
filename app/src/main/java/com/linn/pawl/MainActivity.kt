@@ -4,11 +4,10 @@ package com.linn.pawl
 import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.viewModels
-import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.viewmodels.DuplicateGroup
 import com.linn.pawl.ui.viewmodels.VideoScannerViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 
 @AndroidEntryPoint
@@ -69,7 +68,6 @@ fun VideoScannerApp(
 ) {
     // 使用 collectAsStateWithLifecycle 或 collectAsState 来收集 StateFlow
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     // Android 13+ 权限请求
     val permissionLauncher = rememberLauncherForActivityResult(

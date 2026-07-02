@@ -11,9 +11,9 @@ import javax.inject.Inject
 class VideoScanner @Inject constructor() {
 
     // 时长容差（毫秒），考虑到编码精度，允许微小差异
-    private val DURATION_TOLERANCE_MS = 500L
+    private val durationToleranceMs = 500L
     // 文件大小容差（字节），允许微小差异
-    private val SIZE_TOLERANCE_BYTES = 1024L * 10 // 10KB
+    private val sizeToleranceBytes = 1024L * 10 // 10KB
 
     suspend fun findSimilarVideos(
         videos: List<VideoFile>,
@@ -40,7 +40,6 @@ class VideoScanner @Inject constructor() {
         // === 第三层：对候选组进行深度分析 ===
         val resultGroups = mutableListOf<DuplicateGroup>()
         var processedCount = 0
-        val totalCandidates = candidateGroups.sumOf { it.size }
 
         candidateGroups.forEach { candidateGroup ->
             if (candidateGroup.size < 2) return@forEach
@@ -135,7 +134,7 @@ class VideoScanner @Inject constructor() {
      * 判断两个时长是否相似
      */
     private fun isDurationSimilar(duration1: Long, duration2: Long): Boolean {
-        return kotlin.math.abs(duration1 - duration2) <= DURATION_TOLERANCE_MS
+        return kotlin.math.abs(duration1 - duration2) <= durationToleranceMs
     }
 
     /**
@@ -146,7 +145,7 @@ class VideoScanner @Inject constructor() {
         if (size1 == size2) return true
 
         // 如果大小接近，返回true
-        if (kotlin.math.abs(size1 - size2) <= SIZE_TOLERANCE_BYTES) return true
+        if (kotlin.math.abs(size1 - size2) <= sizeToleranceBytes) return true
 
         // 如果大小差异在2%以内，也认为可能相似（用于不同编码版本）
         val diffPercent = kotlin.math.abs(size1 - size2).toDouble() / maxOf(size1, size2)
@@ -248,7 +247,7 @@ class VideoScanner @Inject constructor() {
                 width = width,
                 height = height
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         } finally {
             extractor?.release()
