@@ -1,6 +1,8 @@
 package com.linn.pawl.ui.viewmodels
 
+import android.content.ContentUris
 import android.content.Context
+import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -79,6 +81,7 @@ class VideoScannerViewModel @Inject constructor(
         )
 
         cursor?.use {
+            val idColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
             val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
@@ -87,8 +90,14 @@ class VideoScannerViewModel @Inject constructor(
             while (it.moveToNext()) {
                 val path = it.getString(dataColumn) ?: continue
                 if (File(path).exists()) {
+                    val mediaId = it.getLong(idColumn)
                     videos.add(
                         VideoFile(
+                            mediaId = mediaId,
+                            contentUri = ContentUris.withAppendedId(
+                                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                                mediaId
+                            ),
                             path = path,
                             name = it.getString(nameColumn) ?: "unknown",
                             size = it.getLong(sizeColumn),
@@ -112,12 +121,17 @@ class VideoScannerViewModel @Inject constructor(
 }
 
 data class VideoFile(
+    val mediaId: Long,
+    val contentUri: Uri,
     val path: String,
     val name: String,
     val size: Long,
     val duration: Long
-)
+) {
+    val parentDirectory: String
+        get() = File(path).parent.orEmpty()
+}
 
 data class DuplicateGroup(
-    val videos: List<String>
+    val videos: List<VideoFile>
 )

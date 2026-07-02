@@ -58,8 +58,10 @@ class VideoScanner @Inject constructor() {
                 onProgress(processedCount)
             }
 
+            val videoByPath = candidateGroup.associateBy { it.path }
+
             // 在候选组内进行比对
-            val similarGroups = findSimilarInGroup(signatures)
+            val similarGroups = findSimilarInGroup(signatures, videoByPath)
             resultGroups.addAll(similarGroups)
         }
 
@@ -156,7 +158,8 @@ class VideoScanner @Inject constructor() {
      * 在候选组内查找相似视频
      */
     private fun findSimilarInGroup(
-        signatures: Map<String, VideoSignature>
+        signatures: Map<String, VideoSignature>,
+        videoByPath: Map<String, VideoFile>
     ): List<DuplicateGroup> {
         if (signatures.size < 2) return emptyList()
 
@@ -168,13 +171,14 @@ class VideoScanner @Inject constructor() {
             val (path1, sig1) = signatureList[i]
             if (path1 in processed) continue
 
-            val similar = mutableListOf(path1)
+            val similar = mutableListOf<VideoFile>()
+            videoByPath[path1]?.let { similar.add(it) }
             for (j in i + 1 until signatureList.size) {
                 val (path2, sig2) = signatureList[j]
                 if (path2 in processed) continue
 
                 if (areSimilar(sig1, sig2)) {
-                    similar.add(path2)
+                    videoByPath[path2]?.let { similar.add(it) }
                     processed.add(path2)
                 }
             }

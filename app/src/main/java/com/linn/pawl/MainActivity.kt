@@ -2,13 +2,19 @@ package com.linn.pawl
 
 
 import android.Manifest
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -30,17 +37,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.viewmodels.DuplicateGroup
+import com.linn.pawl.ui.viewmodels.VideoFile
 import com.linn.pawl.ui.viewmodels.VideoScannerViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -196,35 +213,82 @@ fun DuplicateGroupCard(group: DuplicateGroup) {
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            group.videos.forEachIndexed { index, videoPath ->
-                val file = File(videoPath)
+            group.videos.forEachIndexed { index, video ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    Text(
+                        text = "${index + 1}.",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    VideoThumbnail(
+                        contentUri = video.contentUri,
+                        modifier = Modifier
+                            .size(width = 72.dp, height = 48.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${index + 1}.",
+                            text = video.name,
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = file.name,
-                            fontSize = 14.sp,
+                            text = video.path,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     Text(
-                        text = formatFileSize(file.length()),
+                        text = formatFileSize(video.size),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VideoThumbnail(
+    contentUri: Uri,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val bitmap by produceState<Bitmap?>(initialValue = null, contentUri) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                context.contentResolver.loadThumbnail(contentUri, Size(144, 96), null)
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap!!.asImageBitmap(),
+            contentDescription = null,
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Box(
+            modifier = modifier.background(MaterialTheme.colorScheme.surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("🎬", fontSize = 20.sp)
         }
     }
 }
@@ -237,3 +301,32 @@ private fun formatFileSize(size: Long): String {
         else -> "${size / (1024 * 1024 * 1024)} GB"
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+private fun DuplicateGroupCardPreview() {
+    PawlTheme {
+        DuplicateGroupCard(group = previewDuplicateGroup)
+    }
+}
+
+private val previewDuplicateGroup = DuplicateGroup(
+    videos = listOf(
+        VideoFile(
+            mediaId = 1L,
+            contentUri = "content://media/external/video/media/1".toUri(),
+            path = "/storage/emulated/0/DCIM/Camera/vacation_clip.mp4",
+            name = "vacation_clip.mp4",
+            size = 125_829_120L,
+            duration = 62_000L
+        ),
+        VideoFile(
+            mediaId = 2L,
+            contentUri = "content://media/external/video/media/2".toUri(),
+            path = "/storage/emulated/0/Movies/Downloads/vacation_clip (1).mp4",
+            name = "vacation_clip (1).mp4",
+            size = 125_800_000L,
+            duration = 62_100L
+        )
+    )
+)
