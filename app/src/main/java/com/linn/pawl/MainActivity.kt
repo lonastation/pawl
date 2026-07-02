@@ -4,6 +4,8 @@ package com.linn.pawl
 import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,13 +38,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.viewmodels.DuplicateGroup
 import com.linn.pawl.ui.viewmodels.VideoScannerViewModel
 import java.io.File
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val viewModel: VideoScannerViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -51,7 +55,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    VideoScannerApp()
+                    VideoScannerApp(viewModel = viewModel)
                 }
             }
         }
@@ -61,7 +65,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoScannerApp(
-    viewModel: VideoScannerViewModel = viewModel()
+    viewModel: VideoScannerViewModel
 ) {
     // 使用 collectAsStateWithLifecycle 或 collectAsState 来收集 StateFlow
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
