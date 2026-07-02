@@ -127,10 +127,7 @@ data class VideoFile(
     val name: String,
     val size: Long,
     val duration: Long
-) {
-    val parentDirectory: String
-        get() = File(path).parent.orEmpty()
-}
+)
 
 data class DuplicateGroup(
     val videos: List<VideoFile>
