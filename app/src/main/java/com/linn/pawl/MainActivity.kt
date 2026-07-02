@@ -83,10 +83,8 @@ class MainActivity : ComponentActivity() {
 fun VideoScannerApp(
     viewModel: VideoScannerViewModel
 ) {
-    // 使用 collectAsStateWithLifecycle 或 collectAsState 来收集 StateFlow
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Android 13+ 权限请求
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -96,6 +94,23 @@ fun VideoScannerApp(
         }
     }
 
+    VideoScannerContent(
+        uiState = uiState,
+        onScanClick = {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.READ_MEDIA_VIDEO
+                )
+            )
+        }
+    )
+}
+
+@Composable
+internal fun VideoScannerContent(
+    uiState: VideoScannerViewModel.UiState,
+    onScanClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -104,21 +119,14 @@ fun VideoScannerApp(
         // 标题
         Text(
             text = "🐾 Paw Lens",
-            fontSize = 32.sp,
+            fontSize = 30.sp,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
         // 扫描按钮
         Button(
-            onClick = {
-                // Android 13+ 需要请求新的视频权限
-                permissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.READ_MEDIA_VIDEO
-                    )
-                )
-            },
+            onClick = onScanClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -213,7 +221,7 @@ fun DuplicateGroupCard(group: DuplicateGroup) {
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            group.videos.forEachIndexed { index, video ->
+            group.videos.forEach { video ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -221,15 +229,10 @@ fun DuplicateGroupCard(group: DuplicateGroup) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "${index + 1}.",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                     VideoThumbnail(
                         contentUri = video.contentUri,
                         modifier = Modifier
-                            .size(width = 72.dp, height = 48.dp)
+                            .size(width = 72.dp, height = 128.dp)
                             .clip(RoundedCornerShape(6.dp))
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -269,7 +272,7 @@ private fun VideoThumbnail(
     val bitmap by produceState<Bitmap?>(initialValue = null, contentUri) {
         value = withContext(Dispatchers.IO) {
             try {
-                context.contentResolver.loadThumbnail(contentUri, Size(144, 96), null)
+                context.contentResolver.loadThumbnail(contentUri, Size(144, 256), null)
             } catch (_: Exception) {
                 null
             }
@@ -299,6 +302,58 @@ private fun formatFileSize(size: Long): String {
         size < 1024 * 1024 -> "${size / 1024} KB"
         size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
         else -> "${size / (1024 * 1024 * 1024)} GB"
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+private fun VideoScannerAppPreview() {
+    PawlTheme {
+        VideoScannerContent(
+            uiState = VideoScannerViewModel.UiState(
+                totalVideos = 128,
+                totalDuplicates = 3,
+                duplicateGroups = listOf(
+                    previewDuplicateGroup,
+                    DuplicateGroup(
+                        videos = listOf(
+                            VideoFile(
+                                mediaId = 3L,
+                                contentUri = "content://media/external/video/media/3".toUri(),
+                                path = "/storage/emulated/0/DCIM/Camera/birthday_party.mp4",
+                                name = "birthday_party.mp4",
+                                size = 89_000_000L,
+                                duration = 45_000L
+                            ),
+                            VideoFile(
+                                mediaId = 4L,
+                                contentUri = "content://media/external/video/media/4".toUri(),
+                                path = "/storage/emulated/0/Pictures/Screenshots/birthday_party.mp4",
+                                name = "birthday_party.mp4",
+                                size = 88_900_000L,
+                                duration = 45_000L
+                            )
+                        )
+                    )
+                )
+            ),
+            onScanClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+private fun VideoScannerAppScanningPreview() {
+    PawlTheme {
+        VideoScannerContent(
+            uiState = VideoScannerViewModel.UiState(
+                isScanning = true,
+                totalVideos = 128,
+                scannedCount = 42
+            ),
+            onScanClick = {}
+        )
     }
 }
 
