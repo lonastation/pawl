@@ -291,7 +291,7 @@ fun DuplicateGroupCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     VideoThumbnail(
@@ -310,16 +310,24 @@ fun DuplicateGroupCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = video.path,
+                            text = formatPathForDisplay(video.path),
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = formatFileSize(video.size),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatAspectRatio(video.width, video.height),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatDuration(video.duration),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -367,6 +375,10 @@ private fun VideoThumbnail(
     }
 }
 
+private fun formatPathForDisplay(path: String): String {
+    return path.replace("/", "/\u200B")
+}
+
 private fun formatFileSize(size: Long): String {
     return when {
         size < 1024 -> "$size B"
@@ -374,6 +386,36 @@ private fun formatFileSize(size: Long): String {
         size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
         else -> "${size / (1024 * 1024 * 1024)} GB"
     }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    if (durationMs <= 0) return "—"
+    val totalSeconds = durationMs / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
+    }
+}
+
+private fun formatAspectRatio(width: Int, height: Int): String {
+    if (width <= 0 || height <= 0) return "—"
+    val divisor = gcd(width, height)
+    return "${width / divisor}:${height / divisor}"
+}
+
+private fun gcd(a: Int, b: Int): Int {
+    var x = kotlin.math.abs(a)
+    var y = kotlin.math.abs(b)
+    while (y != 0) {
+        val remainder = x % y
+        x = y
+        y = remainder
+    }
+    return x
 }
 
 @Preview(showBackground = true, heightDp = 800)
@@ -391,18 +433,22 @@ private fun VideoScannerAppPreview() {
                             VideoFile(
                                 mediaId = 3L,
                                 contentUri = "content://media/external/video/media/3".toUri(),
-                                path = "/storage/emulated/0/DCIM/Camera/birthday_party.mp4",
+                                path = "/storage/emulated/0/Pictures/Screenshots/birthday_party.mp4",
                                 name = "birthday_party.mp4",
-                                size = 89_000_000L,
-                                duration = 45_000L
+                                size = 88_900_000L,
+                                duration = 45_000L,
+                                width = 1920,
+                                height = 1080
                             ),
                             VideoFile(
                                 mediaId = 4L,
                                 contentUri = "content://media/external/video/media/4".toUri(),
-                                path = "/storage/emulated/0/Pictures/Screenshots/birthday_party.mp4",
+                                path = "/storage/emulated/0/DCIM/Camera/birthday_party.mp4",
                                 name = "birthday_party.mp4",
-                                size = 88_900_000L,
-                                duration = 45_000L
+                                size = 89_000_000L,
+                                duration = 45_000L,
+                                width = 1920,
+                                height = 1080
                             )
                         )
                     )
@@ -441,10 +487,12 @@ private val previewDuplicateGroup = DuplicateGroup(
         VideoFile(
             mediaId = 1L,
             contentUri = "content://media/external/video/media/1".toUri(),
-            path = "/storage/emulated/0/DCIM/Camera/vacation_clip.mp4",
+            path = "/storage/emulated/0/DCIM/Camera//Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/vacation_clip.mp4",
             name = "vacation_clip.mp4",
             size = 125_829_120L,
-            duration = 62_000L
+            duration = 62_000L,
+            width = 1080,
+            height = 1920
         ),
         VideoFile(
             mediaId = 2L,
@@ -452,7 +500,9 @@ private val previewDuplicateGroup = DuplicateGroup(
             path = "/storage/emulated/0/Movies/Downloads/vacation_clip (1).mp4",
             name = "vacation_clip (1).mp4",
             size = 125_800_000L,
-            duration = 62_100L
+            duration = 62_100L,
+            width = 1080,
+            height = 1920
         )
     )
 )
