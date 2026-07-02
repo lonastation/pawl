@@ -2,10 +2,13 @@ package com.linn.pawl
 
 
 import android.Manifest
+import android.app.Activity
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Size
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,8 +32,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -94,6 +100,17 @@ fun VideoScannerApp(
         }
     }
 
+    val context = LocalContext.current
+
+    val deleteLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val deletedIds = uiState.selectedVideoIds
+            viewModel.onVideosDeleted(deletedIds)
+        }
+    }
+
     VideoScannerContent(
         uiState = uiState,
         onScanClick = {
@@ -102,6 +119,18 @@ fun VideoScannerApp(
                     Manifest.permission.READ_MEDIA_VIDEO
                 )
             )
+        },
+        onToggleSelection = viewModel::toggleVideoSelection,
+        onDeleteSelected = {
+            val uris = viewModel.getSelectedVideoUris()
+            if (uris.isEmpty()) return@VideoScannerContent
+            val intentSender = MediaStore.createDeleteRequest(
+                context.contentResolver,
+                uris
+            ).intentSender
+            deleteLauncher.launch(
+                IntentSenderRequest.Builder(intentSender).build()
+            )
         }
     )
 }
@@ -109,13 +138,18 @@ fun VideoScannerApp(
 @Composable
 internal fun VideoScannerContent(
     uiState: VideoScannerViewModel.UiState,
-    onScanClick: () -> Unit
+    onScanClick: () -> Unit,
+    onToggleSelection: (Long) -> Unit = {},
+    onDeleteSelected: () -> Unit = {}
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    val showDeleteButton = uiState.selectedVideoIds.isNotEmpty()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
         // 标题
         Text(
             text = "🐾 Paw Lens",
@@ -181,17 +215,48 @@ internal fun VideoScannerContent(
         // 结果显示
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(
+                bottom = if (showDeleteButton) 72.dp else 0.dp
+            )
         ) {
             items(uiState.duplicateGroups) { group ->
-                DuplicateGroupCard(group = group)
+                DuplicateGroupCard(
+                    group = group,
+                    selectedVideoIds = uiState.selectedVideoIds,
+                    onToggleSelection = onToggleSelection
+                )
+            }
+        }
+        }
+
+        if (showDeleteButton) {
+            Button(
+                onClick = onDeleteSelected,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(
+                    text = "🗑️ 删除选中 (${uiState.selectedVideoIds.size})",
+                    fontSize = 18.sp
+                )
             }
         }
     }
 }
 
 @Composable
-fun DuplicateGroupCard(group: DuplicateGroup) {
+fun DuplicateGroupCard(
+    group: DuplicateGroup,
+    selectedVideoIds: Set<Long> = emptySet(),
+    onToggleSelection: (Long) -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -252,11 +317,17 @@ fun DuplicateGroupCard(group: DuplicateGroup) {
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Text(
-                        text = formatFileSize(video.size),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = formatFileSize(video.size),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Checkbox(
+                            checked = video.mediaId in selectedVideoIds,
+                            onCheckedChange = { onToggleSelection(video.mediaId) }
+                        )
+                    }
                 }
             }
         }

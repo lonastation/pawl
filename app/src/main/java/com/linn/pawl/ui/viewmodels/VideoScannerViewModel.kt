@@ -32,7 +32,8 @@ class VideoScannerViewModel @Inject constructor(
                 duplicateGroups = emptyList(),
                 totalVideos = 0,
                 scannedCount = 0,
-                totalDuplicates = 0
+                totalDuplicates = 0,
+                selectedVideoIds = emptySet()
             )
 
             // 获取所有视频
@@ -111,12 +112,41 @@ class VideoScannerViewModel @Inject constructor(
         return videos
     }
 
+    fun toggleVideoSelection(mediaId: Long) {
+        val current = _uiState.value.selectedVideoIds
+        val updated = if (mediaId in current) current - mediaId else current + mediaId
+        _uiState.value = _uiState.value.copy(selectedVideoIds = updated)
+    }
+
+    fun getSelectedVideoUris(): List<Uri> {
+        val selected = _uiState.value.selectedVideoIds
+        return _uiState.value.duplicateGroups
+            .flatMap { it.videos }
+            .filter { it.mediaId in selected }
+            .map { it.contentUri }
+    }
+
+    fun onVideosDeleted(deletedIds: Set<Long>) {
+        val updatedGroups = _uiState.value.duplicateGroups.mapNotNull { group ->
+            val remaining = group.videos.filter { it.mediaId !in deletedIds }
+            if (remaining.size >= 2) DuplicateGroup(remaining) else null
+        }
+        val totalDuplicates = updatedGroups.sumOf { it.videos.size } - updatedGroups.size
+        _uiState.value = _uiState.value.copy(
+            duplicateGroups = updatedGroups,
+            totalDuplicates = totalDuplicates,
+            totalVideos = _uiState.value.totalVideos - deletedIds.size,
+            selectedVideoIds = _uiState.value.selectedVideoIds - deletedIds
+        )
+    }
+
     data class UiState(
         val isScanning: Boolean = false,
         val totalVideos: Int = 0,
         val scannedCount: Int = 0,
         val totalDuplicates: Int = 0,
-        val duplicateGroups: List<DuplicateGroup> = emptyList()
+        val duplicateGroups: List<DuplicateGroup> = emptyList(),
+        val selectedVideoIds: Set<Long> = emptySet()
     )
 }
 
