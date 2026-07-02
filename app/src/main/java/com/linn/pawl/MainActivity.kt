@@ -11,10 +11,11 @@ import android.util.Size
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Image
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +43,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +60,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.setValue
+import com.linn.pawl.ui.VideoDetailScreen
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.viewmodels.DuplicateGroup
 import com.linn.pawl.ui.viewmodels.VideoFile
@@ -111,28 +117,46 @@ fun VideoScannerApp(
         }
     }
 
-    VideoScannerContent(
-        uiState = uiState,
-        onScanClick = {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.READ_MEDIA_VIDEO
+    var selectedVideoId by remember { mutableLongStateOf(-1L) }
+    val selectedVideo = if (selectedVideoId >= 0) {
+        uiState.duplicateGroups
+            .flatMap { it.videos }
+            .find { it.mediaId == selectedVideoId }
+    } else {
+        null
+    }
+
+    if (selectedVideo != null) {
+        BackHandler { selectedVideoId = -1L }
+        VideoDetailScreen(
+            video = selectedVideo,
+            onBack = { selectedVideoId = -1L }
+        )
+    } else {
+        VideoScannerContent(
+            uiState = uiState,
+            onScanClick = {
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.READ_MEDIA_VIDEO
+                    )
                 )
-            )
-        },
-        onToggleSelection = viewModel::toggleVideoSelection,
-        onDeleteSelected = {
-            val uris = viewModel.getSelectedVideoUris()
-            if (uris.isEmpty()) return@VideoScannerContent
-            val intentSender = MediaStore.createDeleteRequest(
-                context.contentResolver,
-                uris
-            ).intentSender
-            deleteLauncher.launch(
-                IntentSenderRequest.Builder(intentSender).build()
-            )
-        }
-    )
+            },
+            onToggleSelection = viewModel::toggleVideoSelection,
+            onVideoClick = { video -> selectedVideoId = video.mediaId },
+            onDeleteSelected = {
+                val uris = viewModel.getSelectedVideoUris()
+                if (uris.isEmpty()) return@VideoScannerContent
+                val intentSender = MediaStore.createDeleteRequest(
+                    context.contentResolver,
+                    uris
+                ).intentSender
+                deleteLauncher.launch(
+                    IntentSenderRequest.Builder(intentSender).build()
+                )
+            }
+        )
+    }
 }
 
 @Composable
@@ -140,6 +164,7 @@ internal fun VideoScannerContent(
     uiState: VideoScannerViewModel.UiState,
     onScanClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
+    onVideoClick: (VideoFile) -> Unit = {},
     onDeleteSelected: () -> Unit = {}
 ) {
     val showDeleteButton = uiState.selectedVideoIds.isNotEmpty()
@@ -224,7 +249,8 @@ internal fun VideoScannerContent(
                 DuplicateGroupCard(
                     group = group,
                     selectedVideoIds = uiState.selectedVideoIds,
-                    onToggleSelection = onToggleSelection
+                    onToggleSelection = onToggleSelection,
+                    onVideoClick = onVideoClick
                 )
             }
         }
@@ -255,7 +281,8 @@ internal fun VideoScannerContent(
 fun DuplicateGroupCard(
     group: DuplicateGroup,
     selectedVideoIds: Set<Long> = emptySet(),
-    onToggleSelection: (Long) -> Unit = {}
+    onToggleSelection: (Long) -> Unit = {},
+    onVideoClick: (VideoFile) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -299,6 +326,7 @@ fun DuplicateGroupCard(
                         modifier = Modifier
                             .size(width = 72.dp, height = 128.dp)
                             .clip(RoundedCornerShape(6.dp))
+                            .clickable { onVideoClick(video) }
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -375,11 +403,11 @@ private fun VideoThumbnail(
     }
 }
 
-private fun formatPathForDisplay(path: String): String {
+internal fun formatPathForDisplay(path: String): String {
     return path.replace("/", "/\u200B")
 }
 
-private fun formatFileSize(size: Long): String {
+internal fun formatFileSize(size: Long): String {
     return when {
         size < 1024 -> "$size B"
         size < 1024 * 1024 -> "${size / 1024} KB"
@@ -388,7 +416,7 @@ private fun formatFileSize(size: Long): String {
     }
 }
 
-private fun formatDuration(durationMs: Long): String {
+internal fun formatDuration(durationMs: Long): String {
     if (durationMs <= 0) return "—"
     val totalSeconds = durationMs / 1000
     val hours = totalSeconds / 3600
@@ -401,7 +429,7 @@ private fun formatDuration(durationMs: Long): String {
     }
 }
 
-private fun formatAspectRatio(width: Int, height: Int): String {
+internal fun formatAspectRatio(width: Int, height: Int): String {
     if (width <= 0 || height <= 0) return "—"
     val divisor = gcd(width, height)
     return "${width / divisor}:${height / divisor}"

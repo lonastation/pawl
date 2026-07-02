@@ -1,7 +1,7 @@
 [versions]
 agp = "9.2.1"
 hilt-version = "2.60"
-kotlinMetadataJvm = "2.3.0"
+kotlinMetadataJvm = "2.3.21"
 ksp = "2.3.9"
 kotlin = "2.4.0"
 coreKtx = "1.19.0"
@@ -14,6 +14,7 @@ activityCompose = "1.13.0"
 composeBom = "2026.06.01"
 materialIconsCore = "1.7.8"
 room = "2.8.4"
+media3 = "1.10.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,6 +40,8 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room"}
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room"}
 kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlinMetadataJvm" }
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
