@@ -266,8 +266,9 @@ internal fun VideoScannerContent(
         // 结果显示
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(
+                top = 4.dp,
                 bottom = if (showDeleteButton) 72.dp else 0.dp
             )
         ) {
@@ -553,7 +554,7 @@ private val previewDuplicateGroup = DuplicateGroup(
         VideoFile(
             mediaId = 1L,
             contentUri = "content://media/external/video/media/1".toUri(),
-            path = "/storage/emulated/0/DCIM/Camera//Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/Screenshots/vacation_clip.mp4",
+            path = "/storage/emulated/0/DCIM/Camera/Screenshots/vacation_clip.mp4",
             name = "vacation_clip.mp4",
             size = 125_829_120L,
             duration = 62_000L,
