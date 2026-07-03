@@ -1,7 +1,9 @@
 package com.linn.pawl.ui
 
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,7 +27,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,7 +39,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import androidx.core.net.toUri
 import com.linn.pawl.formatAspectRatio
+import com.linn.pawl.formatDateTime
+import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.formatDuration
 import com.linn.pawl.formatFileSize
 import com.linn.pawl.formatPathForDisplay
@@ -59,6 +67,7 @@ fun VideoDetailScreen(
                 title = {
                     Text(
                         text = video.name,
+                        fontSize = 20.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -67,7 +76,7 @@ fun VideoDetailScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = "Back"
                         )
                     }
                 },
@@ -96,11 +105,12 @@ fun VideoDetailScreen(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DetailInfoRow(label = "文件名", value = video.name)
-                DetailInfoRow(label = "路径", value = formatPathForDisplay(video.path))
-                DetailInfoRow(label = "大小", value = formatFileSize(video.size))
-                DetailInfoRow(label = "宽高比", value = formatAspectRatio(video.width, video.height))
-                DetailInfoRow(label = "时长", value = formatDuration(video.duration))
+                DetailInfoRow(label = "File Name", value = video.name)
+                DetailInfoRow(label = "File Path", value = formatPathForDisplay(video.path))
+                DetailInfoRow(label = "File Size", value = formatFileSize(video.size))
+                DetailInfoRow(label = "Created", value = formatDateTime(video.dateCreated))
+                DetailInfoRow(label = "Aspect Ratio", value = formatAspectRatio(video.width, video.height))
+                DetailInfoRow(label = "Duration", value = formatDuration(video.duration))
             }
         }
     }
@@ -128,6 +138,11 @@ private fun VideoPlayer(
     contentUri: Uri,
     modifier: Modifier = Modifier
 ) {
+    if (LocalInspectionMode.current) {
+        Box(modifier = modifier.background(Color.Black))
+        return
+    }
+
     val context = LocalContext.current
     val exoPlayer = remember(contentUri) {
         ExoPlayer.Builder(context).build().apply {
@@ -150,4 +165,25 @@ private fun VideoPlayer(
         },
         modifier = modifier
     )
+}
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+private fun VideoDetailScreenPreview() {
+    PawlTheme {
+        VideoDetailScreen(
+            video = VideoFile(
+                mediaId = 1L,
+                contentUri = "content://media/external/video/media/1".toUri(),
+                path = "/storage/emulated/0/DCIM/Camera/Screenshots/vacation_clip.mp4",
+                name = "vacation_clip.mp4",
+                size = 125_829_120L,
+                duration = 62_000L,
+                width = 1080,
+                height = 1920,
+                dateCreated = 1_718_000_000_000L
+            ),
+            onBack = {}
+        )
+    }
 }

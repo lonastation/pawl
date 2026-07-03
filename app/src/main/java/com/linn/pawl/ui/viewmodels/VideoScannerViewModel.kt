@@ -72,7 +72,8 @@ class VideoScannerViewModel @Inject constructor(
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.WIDTH,
-            MediaStore.Video.Media.HEIGHT
+            MediaStore.Video.Media.HEIGHT,
+            MediaStore.Video.Media.DATE_ADDED
         )
 
         val cursor = context.contentResolver.query(
@@ -91,6 +92,7 @@ class VideoScannerViewModel @Inject constructor(
             val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val widthColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
             val heightColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
+            val dateAddedColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
 
             while (it.moveToNext()) {
                 val path = it.getString(dataColumn) ?: continue
@@ -108,7 +110,8 @@ class VideoScannerViewModel @Inject constructor(
                             size = it.getLong(sizeColumn),
                             duration = it.getLong(durationColumn),
                             width = it.getInt(widthColumn),
-                            height = it.getInt(heightColumn)
+                            height = it.getInt(heightColumn),
+                            dateCreated = it.getLong(dateAddedColumn) * 1000L
                         )
                     )
                 }
@@ -164,7 +167,8 @@ data class VideoFile(
     val size: Long,
     val duration: Long,
     val width: Int = 0,
-    val height: Int = 0
+    val height: Int = 0,
+    val dateCreated: Long = 0L
 )
 
 data class DuplicateGroup(

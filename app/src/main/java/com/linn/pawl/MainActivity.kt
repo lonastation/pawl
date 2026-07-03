@@ -465,6 +465,13 @@ internal fun formatDuration(durationMs: Long): String {
     }
 }
 
+internal fun formatDateTime(timestampMs: Long): String {
+    if (timestampMs <= 0) return "—"
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
+        .withZone(java.time.ZoneId.systemDefault())
+    return formatter.format(java.time.Instant.ofEpochMilli(timestampMs))
+}
+
 internal fun formatAspectRatio(width: Int, height: Int): String {
     if (width <= 0 || height <= 0) return "—"
     val divisor = gcd(width, height)
