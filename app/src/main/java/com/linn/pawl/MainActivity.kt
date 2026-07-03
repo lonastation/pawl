@@ -248,7 +248,7 @@ internal fun VideoScannerContent(
                         Text("${uiState.totalVideos}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Similar", fontSize = 12.sp)
+                        Text("Group", fontSize = 12.sp)
                         Text("${uiState.duplicateGroups.size}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -293,7 +293,7 @@ internal fun VideoScannerContent(
                 )
             ) {
                 Text(
-                    text = "🗑️ 删除选中 (${uiState.selectedVideoIds.size})",
+                    text = "Delete (${uiState.selectedVideoIds.size})",
                     fontSize = 18.sp
                 )
             }
@@ -522,6 +522,22 @@ private fun VideoScannerAppScanningPreview() {
                 isScanning = true,
                 totalVideos = 128,
                 scannedCount = 42
+            ),
+            onScanClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "Delete selected")
+@Composable
+private fun VideoScannerAppDeletePreview() {
+    PawlTheme {
+        VideoScannerContent(
+            uiState = VideoScannerViewModel.UiState(
+                totalVideos = 128,
+                totalDuplicates = 3,
+                duplicateGroups = listOf(previewDuplicateGroup),
+                selectedVideoIds = setOf(1L, 2L)
             ),
             onScanClick = {}
         )
