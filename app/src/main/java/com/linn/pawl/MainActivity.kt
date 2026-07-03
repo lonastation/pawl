@@ -71,9 +71,9 @@ import androidx.compose.runtime.setValue
 import com.linn.pawl.ui.VideoDetailScreen
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
-import com.linn.pawl.ui.viewmodels.DuplicateGroup
-import com.linn.pawl.ui.viewmodels.VideoFile
-import com.linn.pawl.ui.viewmodels.VideoScannerViewModel
+import com.linn.pawl.ui.DuplicateGroup
+import com.linn.pawl.ui.VideoFile
+import com.linn.pawl.ui.VideoScannerViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -343,7 +343,7 @@ fun DuplicateGroupCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Similar Group",
+                    text = "Duplicate Group",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary

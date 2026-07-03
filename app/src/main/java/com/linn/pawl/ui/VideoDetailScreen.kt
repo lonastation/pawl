@@ -46,7 +46,6 @@ import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.formatDuration
 import com.linn.pawl.formatFileSize
 import com.linn.pawl.formatPathForDisplay
-import com.linn.pawl.ui.viewmodels.VideoFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

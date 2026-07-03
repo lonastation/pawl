@@ -1,12 +1,13 @@
 package com.linn.pawl.service
 
-import android.media.MediaExtractor
-import android.media.MediaFormat
-import com.linn.pawl.ui.viewmodels.DuplicateGroup
-import com.linn.pawl.ui.viewmodels.VideoFile
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import com.linn.pawl.ui.DuplicateGroup
+import com.linn.pawl.ui.VideoFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import androidx.core.graphics.scale
 
 class VideoScanner @Inject constructor() {
 
@@ -15,43 +16,43 @@ class VideoScanner @Inject constructor() {
     // 文件大小容差（字节），允许微小差异
     private val sizeToleranceBytes = 1024L * 10 // 10KB
 
-    suspend fun findSimilarVideos(
+    // 在视频时长上的采样点（比例），用于提取视觉指纹
+    private val sampleFractions = listOf(0.1, 0.25, 0.5, 0.75, 0.9)
+    // dHash 为 64 bit；允许的汉明距离（越大越宽松）
+    private val maxHammingDistance = 10
+    // 至少需要的有效帧采样数
+    private val minFrameSamples = 3
+    // 匹配帧数占有效比较帧数的最低比例
+    private val minMatchingFrameRatio = 0.8
+
+    suspend fun findDuplicateVideos(
         videos: List<VideoFile>,
         onProgress: (Int) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.IO) {
-
         if (videos.size < 2) return@withContext emptyList()
 
-        // === 第一层：按时长分组 ===
         val durationGroups = groupByDuration(videos)
 
-        // === 第二层：在每个时长组内，按文件大小分组 ===
         val candidateGroups = mutableListOf<List<VideoFile>>()
         durationGroups.forEach { group ->
-            val sizeGroups = groupBySize(group)
-            candidateGroups.addAll(sizeGroups)
+            candidateGroups.addAll(groupBySize(group))
         }
 
-        // 如果没有候选组，直接返回空
         if (candidateGroups.isEmpty()) {
             return@withContext emptyList()
         }
 
-        // === 第三层：对候选组进行深度分析 ===
         val resultGroups = mutableListOf<DuplicateGroup>()
         var processedCount = 0
 
         candidateGroups.forEach { candidateGroup ->
             if (candidateGroup.size < 2) return@forEach
 
-            // 提取候选组内每个视频的签名
             val signatures = mutableMapOf<String, VideoSignature>()
             candidateGroup.forEach { video ->
                 try {
-                    val signature = extractHeaderSignature(video.path)
-                    signature?.let { signatures[video.path] = it }
+                    extractVisualSignature(video)?.let { signatures[video.path] = it }
                 } catch (e: Exception) {
-                    // 跳过无法分析的视频
                     e.printStackTrace()
                 }
                 processedCount++
@@ -59,18 +60,14 @@ class VideoScanner @Inject constructor() {
             }
 
             val videoByPath = candidateGroup.associateBy { it.path }
-
-            // 在候选组内进行比对
-            val similarGroups = findSimilarInGroup(signatures, videoByPath)
-            resultGroups.addAll(similarGroups)
+            resultGroups.addAll(findDuplicatesInGroup(signatures, videoByPath))
         }
 
         resultGroups
     }
 
     /**
-     * 第一层：按时长分组
-     * 时长相差在容差范围内的归为一组
+     * 按时长分组，时长相差在容差范围内的归为一组
      */
     private fun groupByDuration(videos: List<VideoFile>): List<List<VideoFile>> {
         val groups = mutableListOf<List<VideoFile>>()
@@ -101,8 +98,7 @@ class VideoScanner @Inject constructor() {
     }
 
     /**
-     * 第二层：按文件大小分组
-     * 在时长相近的组内，进一步按文件大小分组
+     * 在时长相近的组内，按文件大小进一步分组
      */
     private fun groupBySize(videos: List<VideoFile>): List<List<VideoFile>> {
         val groups = mutableListOf<List<VideoFile>>()
@@ -132,32 +128,19 @@ class VideoScanner @Inject constructor() {
         return groups
     }
 
-    /**
-     * 判断两个时长是否相似
-     */
     private fun isDurationSimilar(duration1: Long, duration2: Long): Boolean {
         return kotlin.math.abs(duration1 - duration2) <= durationToleranceMs
     }
 
-    /**
-     * 判断两个文件大小是否相似
-     */
     private fun isSizeSimilar(size1: Long, size2: Long): Boolean {
-        // 如果大小完全相同，直接返回true
         if (size1 == size2) return true
-
-        // 如果大小接近，返回true
         if (kotlin.math.abs(size1 - size2) <= sizeToleranceBytes) return true
 
-        // 如果大小差异在2%以内，也认为可能相似（用于不同编码版本）
         val diffPercent = kotlin.math.abs(size1 - size2).toDouble() / maxOf(size1, size2)
         return diffPercent <= 0.02
     }
 
-    /**
-     * 在候选组内查找相似视频
-     */
-    private fun findSimilarInGroup(
+    private fun findDuplicatesInGroup(
         signatures: Map<String, VideoSignature>,
         videoByPath: Map<String, VideoFile>
     ): List<DuplicateGroup> {
@@ -171,20 +154,20 @@ class VideoScanner @Inject constructor() {
             val (path1, sig1) = signatureList[i]
             if (path1 in processed) continue
 
-            val similar = mutableListOf<VideoFile>()
-            videoByPath[path1]?.let { similar.add(it) }
+            val duplicates = mutableListOf<VideoFile>()
+            videoByPath[path1]?.let { duplicates.add(it) }
             for (j in i + 1 until signatureList.size) {
                 val (path2, sig2) = signatureList[j]
                 if (path2 in processed) continue
 
-                if (areSimilar(sig1, sig2)) {
-                    videoByPath[path2]?.let { similar.add(it) }
+                if (areVisuallySimilar(sig1, sig2)) {
+                    videoByPath[path2]?.let { duplicates.add(it) }
                     processed.add(path2)
                 }
             }
 
-            if (similar.size > 1) {
-                groups.add(DuplicateGroup(similar))
+            if (duplicates.size > 1) {
+                groups.add(DuplicateGroup(duplicates))
             }
             processed.add(path1)
         }
@@ -193,105 +176,115 @@ class VideoScanner @Inject constructor() {
     }
 
     /**
-     * 提取视频开头的特征签名
+     * 在多个时间点解码帧，计算 dHash 作为视觉指纹。
+     * 相比关键帧时间戳，dHash 反映实际画面内容，能有效避免 GOP 结构相同导致的误判。
      */
-    private fun extractHeaderSignature(videoPath: String): VideoSignature? {
-        var extractor: MediaExtractor? = null
+    private fun extractVisualSignature(video: VideoFile): VideoSignature? {
+        if (video.duration <= 0) return null
+
+        var retriever: MediaMetadataRetriever? = null
         try {
-            extractor = MediaExtractor().apply {
-                setDataSource(videoPath)
+            retriever = MediaMetadataRetriever().apply {
+                setDataSource(video.path)
             }
 
-            // 寻找视频轨道
-            var videoTrackIndex = -1
-            var videoFormat: MediaFormat? = null
-            for (i in 0 until extractor.trackCount) {
-                val format = extractor.getTrackFormat(i)
-                val mime = format.getString(MediaFormat.KEY_MIME)
-                if (mime?.startsWith("video/") == true) {
-                    videoTrackIndex = i
-                    videoFormat = format
-                    break
+            val frameHashes = mutableListOf<Long>()
+            for (fraction in sampleFractions) {
+                val timeUs = (video.duration * 1000L * fraction).toLong()
+                val frame = retriever.getFrameAtTime(
+                    timeUs,
+                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+                ) ?: continue
+
+                try {
+                    frameHashes.add(computeDHash(frame))
+                } finally {
+                    frame.recycle()
                 }
             }
 
-            if (videoTrackIndex == -1 || videoFormat == null) {
-                return null
-            }
-
-            // 获取视频分辨率
-            val width = videoFormat.getInteger(MediaFormat.KEY_WIDTH)
-            val height = videoFormat.getInteger(MediaFormat.KEY_HEIGHT)
-
-            extractor.selectTrack(videoTrackIndex)
-
-            // 读取前10个关键帧的时间戳作为特征
-            val keyFrameTimes = mutableListOf<Long>()
-            extractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
-
-            var framesRead = 0
-            while (framesRead < 10) {
-                val sampleTime = extractor.sampleTime
-                if (sampleTime == -1L) break
-
-                if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
-                    keyFrameTimes.add(sampleTime)
-                    framesRead++
-                }
-                extractor.advance()
-            }
-
-            if (keyFrameTimes.size < 3) {
-                return null // 视频太短
-            }
+            if (frameHashes.size < minFrameSamples) return null
 
             return VideoSignature(
-                keyFrameTimes = keyFrameTimes,
-                frameCount = keyFrameTimes.size,
-                width = width,
-                height = height
+                frameHashes = frameHashes,
+                width = video.width,
+                height = video.height
             )
         } catch (_: Exception) {
             return null
         } finally {
-            extractor?.release()
+            retriever?.release()
         }
     }
 
     /**
-     * 判断两个签名是否相似
+     * 9×8 差分哈希（dHash）：缩略后比较相邻像素灰度，得到 64 bit 指纹。
      */
-    private fun areSimilar(sig1: VideoSignature, sig2: VideoSignature): Boolean {
-        // 分辨率不同，直接判定不相似（如果分辨率不同不可能是同一个视频）
+    private fun computeDHash(bitmap: Bitmap): Long {
+        val hashWidth = 9
+        val hashHeight = 8
+        val scaled = bitmap.scale(hashWidth, hashHeight)
+        if (scaled !== bitmap) {
+            bitmap.recycle()
+        }
+
+        val pixels = IntArray(hashWidth * hashHeight)
+        scaled.getPixels(pixels, 0, hashWidth, 0, 0, hashWidth, hashHeight)
+        scaled.recycle()
+
+        var hash = 0L
+        var bitIndex = 0
+        for (y in 0 until hashHeight) {
+            for (x in 0 until hashWidth - 1) {
+                val left = grayscale(pixels[y * hashWidth + x])
+                val right = grayscale(pixels[y * hashWidth + x + 1])
+                if (left > right) {
+                    hash = hash or (1L shl bitIndex)
+                }
+                bitIndex++
+            }
+        }
+        return hash
+    }
+
+    private fun grayscale(pixel: Int): Int {
+        val r = (pixel shr 16) and 0xFF
+        val g = (pixel shr 8) and 0xFF
+        val b = pixel and 0xFF
+        return (0.299 * r + 0.587 * g + 0.114 * b).toInt()
+    }
+
+    private fun hammingDistance(a: Long, b: Long): Int {
+        return java.lang.Long.bitCount(a xor b)
+    }
+
+    private fun areVisuallySimilar(sig1: VideoSignature, sig2: VideoSignature): Boolean {
         if (sig1.width != sig2.width || sig1.height != sig2.height) {
             return false
         }
 
-        val times1 = sig1.keyFrameTimes
-        val times2 = sig2.keyFrameTimes
-
-        // 如果帧数差异过大，直接判定不相似
-        if (kotlin.math.abs(times1.size - times2.size) > 2) return false
-
-        // 计算相似度
-        val minSize = minOf(times1.size, times2.size)
-        if (minSize < 2) return false
-
-        // 计算归一化相关系数
-        var correlation = 0.0
-        for (i in 0 until minSize) {
-            val diff = times1[i] - times2[i]
-            // 时间戳差异越小，相似度越高
-            correlation += 1.0 / (1 + kotlin.math.abs(diff) / 1000.0)
+        val hashes1 = sig1.frameHashes
+        val hashes2 = sig2.frameHashes
+        if (hashes1.size < minFrameSamples || hashes2.size < minFrameSamples) {
+            return false
         }
 
-        val similarity = correlation / minSize
-        return similarity > 0.7 // 阈值可调
+        val compareCount = minOf(hashes1.size, hashes2.size)
+        if (compareCount < minFrameSamples) return false
+
+        var matchingFrames = 0
+        for (i in 0 until compareCount) {
+            if (hammingDistance(hashes1[i], hashes2[i]) <= maxHammingDistance) {
+                matchingFrames++
+            }
+        }
+
+        val requiredMatches = kotlin.math.ceil(compareCount * minMatchingFrameRatio).toInt()
+        return matchingFrames >= requiredMatches
     }
 
     private data class VideoSignature(
-        val keyFrameTimes: List<Long>,
-        val frameCount: Int,
+        val frameHashes: List<Long>,
         val width: Int,
         val height: Int
     )

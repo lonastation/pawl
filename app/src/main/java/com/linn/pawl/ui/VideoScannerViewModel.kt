@@ -1,4 +1,4 @@
-package com.linn.pawl.ui.viewmodels
+package com.linn.pawl.ui
 
 import android.content.ContentUris
 import android.content.Context
@@ -42,8 +42,8 @@ class VideoScannerViewModel @Inject constructor(
                 totalVideos = allVideos.size
             )
 
-            // 分析并分组相似视频
-            val groups = videoScanner.findSimilarVideos(
+            // 分析并分组重复视频
+            val groups = videoScanner.findDuplicateVideos(
                 videos = allVideos,
                 onProgress = { scanned ->
                     _uiState.value = _uiState.value.copy(
