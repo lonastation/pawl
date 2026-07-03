@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.data.repository.VideoSignatureRepository
 import com.linn.pawl.service.VideoScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class VideoScannerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val videoScanner: VideoScanner
+    private val videoScanner: VideoScanner,
+    private val signatureRepository: VideoSignatureRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -73,7 +75,8 @@ class VideoScannerViewModel @Inject constructor(
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.WIDTH,
             MediaStore.Video.Media.HEIGHT,
-            MediaStore.Video.Media.DATE_ADDED
+            MediaStore.Video.Media.DATE_ADDED,
+            MediaStore.Video.Media.DATE_MODIFIED
         )
 
         val cursor = context.contentResolver.query(
@@ -93,11 +96,14 @@ class VideoScannerViewModel @Inject constructor(
             val widthColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
             val heightColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
             val dateAddedColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+            val dateModifiedColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
 
             while (it.moveToNext()) {
                 val path = it.getString(dataColumn) ?: continue
-                if (File(path).exists()) {
+                val file = File(path)
+                if (file.exists()) {
                     val mediaId = it.getLong(idColumn)
+                    val mediaStoreModified = it.getLong(dateModifiedColumn) * 1000L
                     videos.add(
                         VideoFile(
                             mediaId = mediaId,
@@ -111,7 +117,8 @@ class VideoScannerViewModel @Inject constructor(
                             duration = it.getLong(durationColumn),
                             width = it.getInt(widthColumn),
                             height = it.getInt(heightColumn),
-                            dateCreated = it.getLong(dateAddedColumn) * 1000L
+                            dateCreated = it.getLong(dateAddedColumn) * 1000L,
+                            lastModified = maxOf(file.lastModified(), mediaStoreModified)
                         )
                     )
                 }
@@ -136,6 +143,15 @@ class VideoScannerViewModel @Inject constructor(
     }
 
     fun onVideosDeleted(deletedIds: Set<Long>) {
+        val deletedPaths = _uiState.value.duplicateGroups
+            .flatMap { it.videos }
+            .filter { it.mediaId in deletedIds }
+            .map { it.path }
+
+        viewModelScope.launch {
+            signatureRepository.deleteByPaths(deletedPaths)
+        }
+
         val updatedGroups = _uiState.value.duplicateGroups.mapNotNull { group ->
             val remaining = group.videos.filter { it.mediaId !in deletedIds }
             if (remaining.size >= 2) DuplicateGroup(remaining) else null
@@ -168,7 +184,8 @@ data class VideoFile(
     val duration: Long,
     val width: Int = 0,
     val height: Int = 0,
-    val dateCreated: Long = 0L
+    val dateCreated: Long = 0L,
+    val lastModified: Long = 0L
 )
 
 data class DuplicateGroup(

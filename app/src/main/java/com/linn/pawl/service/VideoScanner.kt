@@ -2,14 +2,18 @@ package com.linn.pawl.service
 
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import androidx.core.graphics.scale
+import com.linn.pawl.data.model.VideoSignature
+import com.linn.pawl.data.repository.VideoSignatureRepository
 import com.linn.pawl.ui.DuplicateGroup
 import com.linn.pawl.ui.VideoFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import androidx.core.graphics.scale
 
-class VideoScanner @Inject constructor() {
+class VideoScanner @Inject constructor(
+    private val signatureRepository: VideoSignatureRepository
+) {
 
     // 时长容差（毫秒），考虑到编码精度，允许微小差异
     private val durationToleranceMs = 500L
@@ -29,6 +33,12 @@ class VideoScanner @Inject constructor() {
         videos: List<VideoFile>,
         onProgress: (Int) -> Unit
     ): List<DuplicateGroup> = withContext(Dispatchers.IO) {
+        if (videos.isEmpty()) return@withContext emptyList()
+
+        signatureRepository.deleteStale(videos.map { it.path })
+
+        val signatureCache = loadOrComputeSignatures(videos, onProgress)
+
         if (videos.size < 2) return@withContext emptyList()
 
         val durationGroups = groupByDuration(videos)
@@ -43,27 +53,40 @@ class VideoScanner @Inject constructor() {
         }
 
         val resultGroups = mutableListOf<DuplicateGroup>()
-        var processedCount = 0
-
         candidateGroups.forEach { candidateGroup ->
             if (candidateGroup.size < 2) return@forEach
 
-            val signatures = mutableMapOf<String, VideoSignature>()
-            candidateGroup.forEach { video ->
-                try {
-                    extractVisualSignature(video)?.let { signatures[video.path] = it }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                processedCount++
-                onProgress(processedCount)
-            }
+            val signatures = candidateGroup.mapNotNull { video ->
+                signatureCache[video.path]?.let { video.path to it }
+            }.toMap()
 
             val videoByPath = candidateGroup.associateBy { it.path }
             resultGroups.addAll(findDuplicatesInGroup(signatures, videoByPath))
         }
 
         resultGroups
+    }
+
+    private suspend fun loadOrComputeSignatures(
+        videos: List<VideoFile>,
+        onProgress: (Int) -> Unit
+    ): Map<String, VideoSignature> {
+        val signatures = signatureRepository.getCachedBatch(videos).toMutableMap()
+        var processedCount = 0
+
+        for (video in videos) {
+            if (video.path !in signatures) {
+                val signature = extractVisualSignature(video)
+                if (signature != null) {
+                    signatureRepository.save(video, signature)
+                    signatures[video.path] = signature
+                }
+            }
+            processedCount++
+            onProgress(processedCount)
+        }
+
+        return signatures
     }
 
     /**
@@ -282,10 +305,4 @@ class VideoScanner @Inject constructor() {
         val requiredMatches = kotlin.math.ceil(compareCount * minMatchingFrameRatio).toInt()
         return matchingFrames >= requiredMatches
     }
-
-    private data class VideoSignature(
-        val frameHashes: List<Long>,
-        val width: Int,
-        val height: Int
-    )
 }
