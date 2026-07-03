@@ -76,6 +76,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.core.net.toUri
+import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -467,7 +468,7 @@ internal fun formatDuration(durationMs: Long): String {
 
 internal fun formatDateTime(timestampMs: Long): String {
     if (timestampMs <= 0) return "—"
-    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm", Locale.US)
         .withZone(java.time.ZoneId.systemDefault())
     return formatter.format(java.time.Instant.ofEpochMilli(timestampMs))
 }

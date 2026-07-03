@@ -167,7 +167,7 @@ private fun VideoPlayer(
     )
 }
 
-@Preview(showBackground = true, heightDp = 800)
+@Preview(showBackground = true, heightDp = 1100)
 @Composable
 private fun VideoDetailScreenPreview() {
     PawlTheme {
