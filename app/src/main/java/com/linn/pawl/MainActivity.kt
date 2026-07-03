@@ -40,8 +40,11 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
@@ -62,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.setValue
 import com.linn.pawl.ui.VideoDetailScreen
+import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.viewmodels.DuplicateGroup
 import com.linn.pawl.ui.viewmodels.VideoFile
@@ -159,6 +163,7 @@ fun VideoScannerApp(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun VideoScannerContent(
     uiState: VideoScannerViewModel.UiState,
@@ -169,27 +174,44 @@ internal fun VideoScannerContent(
 ) {
     val showDeleteButton = uiState.selectedVideoIds.isNotEmpty()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Paw Lens",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { innerPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-        // 标题
-        Text(
-            text = "🐾 Paw Lens",
-            fontSize = 30.sp,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // 扫描按钮
         Button(
             onClick = onScanClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            enabled = !uiState.isScanning
+            enabled = !uiState.isScanning,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
             if (uiState.isScanning) {
                 CircularProgressIndicator(
@@ -198,9 +220,9 @@ internal fun VideoScannerContent(
                     strokeWidth = 2.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("扫描中... ${uiState.scannedCount}/${uiState.totalVideos}")
+                Text("Scanning... ${uiState.scannedCount}/${uiState.totalVideos}")
             } else {
-                Text("🔍 开始扫描", fontSize = 18.sp)
+                Text("🔍 Start Scanning", fontSize = 18.sp)
             }
         }
 
@@ -211,8 +233,9 @@ internal fun VideoScannerContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+                    containerColor = AppWhite
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -221,15 +244,15 @@ internal fun VideoScannerContent(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("📹 总数", fontSize = 12.sp)
+                        Text("Total", fontSize = 12.sp)
                         Text("${uiState.totalVideos}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("📊 相似组", fontSize = 12.sp)
+                        Text("Similar", fontSize = 12.sp)
                         Text("${uiState.duplicateGroups.size}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🔄 重复", fontSize = 12.sp)
+                        Text("Duplicate", fontSize = 12.sp)
                         Text("${uiState.totalDuplicates}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -265,7 +288,8 @@ internal fun VideoScannerContent(
                     .padding(16.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
                 Text(
@@ -274,6 +298,7 @@ internal fun VideoScannerContent(
                 )
             }
         }
+    }
     }
 }
 
@@ -287,8 +312,9 @@ fun DuplicateGroupCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = AppWhite
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -300,13 +326,13 @@ fun DuplicateGroupCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "📁 相似视频组",
+                    text = "Similar Group",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${group.videos.size} 个文件",
+                    text = "Total: ${group.videos.size}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -499,14 +525,6 @@ private fun VideoScannerAppScanningPreview() {
             ),
             onScanClick = {}
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun DuplicateGroupCardPreview() {
-    PawlTheme {
-        DuplicateGroupCard(group = previewDuplicateGroup)
     }
 }
 
