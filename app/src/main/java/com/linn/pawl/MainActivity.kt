@@ -278,7 +278,7 @@ internal fun VideoScannerContent(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(
                 top = 4.dp,
                 bottom = if (showDeleteButton) 72.dp else 0.dp
