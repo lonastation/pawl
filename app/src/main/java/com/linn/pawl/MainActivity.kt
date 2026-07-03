@@ -207,10 +207,13 @@ internal fun VideoScannerContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
+            shape = MaterialTheme.shapes.medium,
             enabled = !uiState.isScanning,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                disabledContainerColor = MaterialTheme.colorScheme.tertiary,
+                disabledContentColor = MaterialTheme.colorScheme.onPrimary,
             )
         ) {
             if (uiState.isScanning) {
@@ -288,7 +291,7 @@ internal fun VideoScannerContent(
                     .padding(16.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
