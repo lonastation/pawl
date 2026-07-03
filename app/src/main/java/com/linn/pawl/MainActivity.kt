@@ -180,7 +180,7 @@ internal fun VideoScannerContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Paw L",
+                        text = "VM",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -290,6 +290,7 @@ internal fun VideoScannerContent(
                     .fillMaxWidth()
                     .padding(16.dp)
                     .height(56.dp),
+                shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -335,7 +336,7 @@ fun DuplicateGroupCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Total: ${group.videos.size}",
+                    text = "${group.videos.size}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.secondary
                 )
