@@ -67,7 +67,7 @@ fun VideoDetailScreen(
                 title = {
                     Text(
                         text = video.name,
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

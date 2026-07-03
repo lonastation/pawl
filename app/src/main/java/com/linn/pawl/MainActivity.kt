@@ -31,7 +31,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -125,6 +127,7 @@ fun VideoScannerApp(
     }
 
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
+    val listState = rememberLazyListState()
     val selectedVideo = if (selectedVideoId >= 0) {
         uiState.duplicateGroups
             .flatMap { it.videos }
@@ -142,6 +145,7 @@ fun VideoScannerApp(
     } else {
         VideoScannerContent(
             uiState = uiState,
+            listState = listState,
             onScanClick = {
                 permissionLauncher.launch(
                     arrayOf(
@@ -170,6 +174,7 @@ fun VideoScannerApp(
 @Composable
 internal fun VideoScannerContent(
     uiState: VideoScannerViewModel.UiState,
+    listState: LazyListState = rememberLazyListState(),
     onScanClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
     onVideoClick: (VideoFile) -> Unit = {},
@@ -271,6 +276,7 @@ internal fun VideoScannerContent(
 
         // 结果显示
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(
