@@ -180,7 +180,7 @@ internal fun VideoScannerContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = "VM",
+                        text = "VM-LIKE",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
