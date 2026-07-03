@@ -180,7 +180,7 @@ internal fun VideoScannerContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Paw Lens",
+                        text = "Paw L",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -222,7 +222,7 @@ internal fun VideoScannerContent(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Scanning... ${uiState.scannedCount}/${uiState.totalVideos}")
             } else {
-                Text("🔍 Start Scanning", fontSize = 18.sp)
+                Text("Start Scanning", fontSize = 18.sp)
             }
         }
 
