@@ -9,6 +9,8 @@ import com.linn.pawl.ui.DuplicateGroup
 import com.linn.pawl.ui.VideoFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.FileInputStream
+import java.security.MessageDigest
 import javax.inject.Inject
 
 class VideoScanner @Inject constructor(
@@ -37,34 +39,16 @@ class VideoScanner @Inject constructor(
 
         signatureRepository.deleteStale(videos.map { it.path })
 
+        // Phase 1: generate or load signatures for all videos
         val signatureCache = loadOrComputeSignatures(videos, onProgress)
 
         if (videos.size < 2) return@withContext emptyList()
 
-        val durationGroups = groupByDuration(videos)
+        // Phase 2: compare within candidate groups
+        val candidateGroups = buildCandidateGroups(videos)
+        if (candidateGroups.isEmpty()) return@withContext emptyList()
 
-        val candidateGroups = mutableListOf<List<VideoFile>>()
-        durationGroups.forEach { group ->
-            candidateGroups.addAll(groupBySize(group))
-        }
-
-        if (candidateGroups.isEmpty()) {
-            return@withContext emptyList()
-        }
-
-        val resultGroups = mutableListOf<DuplicateGroup>()
-        candidateGroups.forEach { candidateGroup ->
-            if (candidateGroup.size < 2) return@forEach
-
-            val signatures = candidateGroup.mapNotNull { video ->
-                signatureCache[video.path]?.let { video.path to it }
-            }.toMap()
-
-            val videoByPath = candidateGroup.associateBy { it.path }
-            resultGroups.addAll(findDuplicatesInGroup(signatures, videoByPath))
-        }
-
-        resultGroups
+        compareCandidateGroups(candidateGroups, signatureCache)
     }
 
     private suspend fun loadOrComputeSignatures(
@@ -76,7 +60,7 @@ class VideoScanner @Inject constructor(
 
         for (video in videos) {
             if (video.path !in signatures) {
-                val signature = extractVisualSignature(video)
+                val signature = extractSignature(video)
                 if (signature != null) {
                     signatureRepository.save(video, signature)
                     signatures[video.path] = signature
@@ -87,6 +71,30 @@ class VideoScanner @Inject constructor(
         }
 
         return signatures
+    }
+
+    private fun buildCandidateGroups(videos: List<VideoFile>): List<List<VideoFile>> {
+        val candidateGroups = mutableListOf<List<VideoFile>>()
+        groupByDuration(videos).forEach { group ->
+            candidateGroups.addAll(groupBySize(group))
+        }
+        return candidateGroups.filter { it.size >= 2 }
+    }
+
+    private fun compareCandidateGroups(
+        candidateGroups: List<List<VideoFile>>,
+        signatureCache: Map<String, VideoSignature>
+    ): List<DuplicateGroup> {
+        val resultGroups = mutableListOf<DuplicateGroup>()
+        candidateGroups.forEach { candidateGroup ->
+            val signatures = candidateGroup.mapNotNull { video ->
+                signatureCache[video.path]?.let { video.path to it }
+            }.toMap()
+
+            val videoByPath = candidateGroup.associateBy { it.path }
+            resultGroups.addAll(findDuplicatesInGroup(signatures, videoByPath))
+        }
+        return resultGroups
     }
 
     /**
@@ -172,6 +180,37 @@ class VideoScanner @Inject constructor(
         val groups = mutableListOf<DuplicateGroup>()
         val processed = mutableSetOf<String>()
 
+        // Stage A: cluster by exact MD5 match
+        val md5Buckets = signatures.entries
+            .filter { it.value.md5.isNotEmpty() }
+            .groupBy { it.value.md5 }
+
+        for (entries in md5Buckets.values) {
+            if (entries.size < 2) continue
+
+            val duplicates = entries.mapNotNull { (path, _) -> videoByPath[path] }
+            if (duplicates.size >= 2) {
+                groups.add(DuplicateGroup(duplicates))
+                processed.addAll(entries.map { it.key })
+            }
+        }
+
+        // Stage B: DHash comparison for remaining videos
+        val remaining = signatures.filterKeys { it !in processed }
+        groups.addAll(findVisualDuplicatesInGroup(remaining, videoByPath))
+
+        return groups
+    }
+
+    private fun findVisualDuplicatesInGroup(
+        signatures: Map<String, VideoSignature>,
+        videoByPath: Map<String, VideoFile>
+    ): List<DuplicateGroup> {
+        if (signatures.size < 2) return emptyList()
+
+        val groups = mutableListOf<DuplicateGroup>()
+        val processed = mutableSetOf<String>()
+
         val signatureList = signatures.entries.toList()
         for (i in signatureList.indices) {
             val (path1, sig1) = signatureList[i]
@@ -199,12 +238,45 @@ class VideoScanner @Inject constructor(
     }
 
     /**
-     * 在多个时间点解码帧，计算 dHash 作为视觉指纹。
-     * 相比关键帧时间戳，dHash 反映实际画面内容，能有效避免 GOP 结构相同导致的误判。
+     * 计算 MD5 文件哈希与 dHash 视觉指纹。
      */
-    private fun extractVisualSignature(video: VideoFile): VideoSignature? {
+    private fun extractSignature(video: VideoFile): VideoSignature? {
         if (video.duration <= 0) return null
 
+        val md5 = computeFileMd5(video.path) ?: return null
+        val frameHashes = extractFrameHashes(video) ?: return null
+
+        return VideoSignature(
+            md5 = md5,
+            frameHashes = frameHashes,
+            width = video.width,
+            height = video.height
+        )
+    }
+
+    private fun computeFileMd5(path: String): String? {
+        return try {
+            val digest = MessageDigest.getInstance("MD5")
+            val buffer = ByteArray(64 * 1024)
+            FileInputStream(path).use { input ->
+                var bytesRead = input.read(buffer)
+                while (bytesRead >= 0) {
+                    if (bytesRead > 0) {
+                        digest.update(buffer, 0, bytesRead)
+                    }
+                    bytesRead = input.read(buffer)
+                }
+            }
+            digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 在多个时间点解码帧，计算 dHash 作为视觉指纹。
+     */
+    private fun extractFrameHashes(video: VideoFile): List<Long>? {
         var retriever: MediaMetadataRetriever? = null
         try {
             retriever = MediaMetadataRetriever().apply {
@@ -227,12 +299,7 @@ class VideoScanner @Inject constructor(
             }
 
             if (frameHashes.size < minFrameSamples) return null
-
-            return VideoSignature(
-                frameHashes = frameHashes,
-                width = video.width,
-                height = video.height
-            )
+            return frameHashes
         } catch (_: Exception) {
             return null
         } finally {

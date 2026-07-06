@@ -2,6 +2,8 @@ package com.linn.pawl.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.linn.pawl.data.local.PawlDatabase
 import com.linn.pawl.data.local.VideoSignatureDao
 import dagger.Module
@@ -15,6 +17,14 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE video_signatures ADD COLUMN md5 TEXT NOT NULL DEFAULT ''"
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -24,7 +34,9 @@ object DatabaseModule {
             context,
             PawlDatabase::class.java,
             "pawl.db"
-        ).build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .build()
     }
 
     @Provides

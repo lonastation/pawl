@@ -11,6 +11,7 @@ data class VideoSignatureEntity(
     val fileSize: Long,
     val width: Int,
     val height: Int,
+    val md5: String,
     val frameHashes: String,
     val computedAt: Long
 )

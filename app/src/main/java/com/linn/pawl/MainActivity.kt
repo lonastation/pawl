@@ -36,6 +36,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -115,6 +116,15 @@ fun VideoScannerApp(
         }
     }
 
+    val regeneratePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            viewModel.regenerateFingerprintsAndScan()
+        }
+    }
+
     val context = LocalContext.current
 
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -153,6 +163,13 @@ fun VideoScannerApp(
                     )
                 )
             },
+            onRegenerateClick = {
+                regeneratePermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.READ_MEDIA_VIDEO
+                    )
+                )
+            },
             onToggleSelection = viewModel::toggleVideoSelection,
             onVideoClick = { video -> selectedVideoId = video.mediaId },
             onDeleteSelected = {
@@ -176,6 +193,7 @@ internal fun VideoScannerContent(
     uiState: VideoScannerViewModel.UiState,
     listState: LazyListState = rememberLazyListState(),
     onScanClick: () -> Unit,
+    onRegenerateClick: () -> Unit = {},
     onToggleSelection: (Long) -> Unit = {},
     onVideoClick: (VideoFile) -> Unit = {},
     onDeleteSelected: () -> Unit = {}
@@ -238,6 +256,19 @@ internal fun VideoScannerContent(
             } else {
                 Text("Start Scanning", fontSize = 18.sp)
             }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedButton(
+            onClick = onRegenerateClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = MaterialTheme.shapes.medium,
+            enabled = !uiState.isScanning
+        ) {
+            Text("Regenerate Fingerprints", fontSize = 16.sp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

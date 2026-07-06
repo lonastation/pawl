@@ -52,14 +52,20 @@ class VideoSignatureRepository @Inject constructor(
         }
     }
 
+    suspend fun clearAll() {
+        dao.deleteAll()
+    }
+
     private fun isCacheValid(entity: VideoSignatureEntity, video: VideoFile): Boolean {
-        return entity.fileName == video.name &&
+        return entity.md5.isNotEmpty() &&
+            entity.fileName == video.name &&
             entity.lastModified == video.lastModified &&
             entity.fileSize == video.size
     }
 
     private fun VideoSignatureEntity.toModel(): VideoSignature {
         return VideoSignature(
+            md5 = md5,
             frameHashes = frameHashes.split(',').map { it.toLong() },
             width = width,
             height = height
@@ -74,6 +80,7 @@ class VideoSignatureRepository @Inject constructor(
             fileSize = size,
             width = signature.width,
             height = signature.height,
+            md5 = signature.md5,
             frameHashes = signature.frameHashes.joinToString(","),
             computedAt = System.currentTimeMillis()
         )

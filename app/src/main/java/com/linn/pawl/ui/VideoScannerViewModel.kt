@@ -28,6 +28,14 @@ class VideoScannerViewModel @Inject constructor(
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     fun startScan() {
+        runScan(clearFingerprints = false)
+    }
+
+    fun regenerateFingerprintsAndScan() {
+        runScan(clearFingerprints = true)
+    }
+
+    private fun runScan(clearFingerprints: Boolean) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isScanning = true,
@@ -37,6 +45,10 @@ class VideoScannerViewModel @Inject constructor(
                 totalDuplicates = 0,
                 selectedVideoIds = emptySet()
             )
+
+            if (clearFingerprints) {
+                signatureRepository.clearAll()
+            }
 
             // 获取所有视频
             val allVideos = getAllVideos()
