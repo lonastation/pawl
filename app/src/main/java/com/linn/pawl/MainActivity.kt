@@ -34,14 +34,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -54,8 +60,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,7 +77,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.setValue
+import com.linn.pawl.ui.ImageScannerScreen
+import com.linn.pawl.ui.SettingsScreen
 import com.linn.pawl.ui.VideoDetailScreen
+import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.DuplicateGroup
@@ -136,6 +147,7 @@ fun VideoScannerApp(
         }
     }
 
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     val listState = rememberLazyListState()
     val selectedVideo = if (selectedVideoId >= 0) {
@@ -146,6 +158,12 @@ fun VideoScannerApp(
         null
     }
 
+    val onRegenerateClick: () -> Unit = {
+        regeneratePermissionLauncher.launch(
+            arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
+        )
+    }
+
     if (selectedVideo != null) {
         BackHandler { selectedVideoId = -1L }
         VideoDetailScreen(
@@ -153,37 +171,65 @@ fun VideoScannerApp(
             onBack = { selectedVideoId = -1L }
         )
     } else {
-        VideoScannerContent(
-            uiState = uiState,
-            listState = listState,
-            onScanClick = {
-                permissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.READ_MEDIA_VIDEO
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = selectedTab == AppTab.Video,
+                        onClick = { selectedTab = AppTab.Video },
+                        icon = { Icon(Icons.Default.VideoLibrary, contentDescription = "Video") },
+                        label = { Text("Video") }
                     )
-                )
-            },
-            onRegenerateClick = {
-                regeneratePermissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.READ_MEDIA_VIDEO
+                    NavigationBarItem(
+                        selected = selectedTab == AppTab.Image,
+                        onClick = { selectedTab = AppTab.Image },
+                        icon = { Icon(Icons.Default.Image, contentDescription = "Image") },
+                        label = { Text("Image") }
                     )
+                    NavigationBarItem(
+                        selected = selectedTab == AppTab.Settings,
+                        onClick = { selectedTab = AppTab.Settings },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        label = { Text("Setting") }
+                    )
+                }
+            }
+        ) { innerPadding ->
+            when (selectedTab) {
+                AppTab.Video -> VideoScannerContent(
+                    modifier = Modifier.padding(innerPadding),
+                    uiState = uiState,
+                    listState = listState,
+                    onScanClick = {
+                        permissionLauncher.launch(
+                            arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
+                        )
+                    },
+                    onToggleSelection = viewModel::toggleVideoSelection,
+                    onVideoClick = { video -> selectedVideoId = video.mediaId },
+                    onDeleteSelected = {
+                        val uris = viewModel.getSelectedVideoUris()
+                        if (uris.isEmpty()) return@VideoScannerContent
+                        val intentSender = MediaStore.createDeleteRequest(
+                            context.contentResolver,
+                            uris
+                        ).intentSender
+                        deleteLauncher.launch(
+                            IntentSenderRequest.Builder(intentSender).build()
+                        )
+                    }
                 )
-            },
-            onToggleSelection = viewModel::toggleVideoSelection,
-            onVideoClick = { video -> selectedVideoId = video.mediaId },
-            onDeleteSelected = {
-                val uris = viewModel.getSelectedVideoUris()
-                if (uris.isEmpty()) return@VideoScannerContent
-                val intentSender = MediaStore.createDeleteRequest(
-                    context.contentResolver,
-                    uris
-                ).intentSender
-                deleteLauncher.launch(
-                    IntentSenderRequest.Builder(intentSender).build()
+                AppTab.Image -> ImageScannerScreen(
+                    modifier = Modifier.padding(innerPadding)
+                )
+                AppTab.Settings -> SettingsScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    isScanning = uiState.isScanning,
+                    onRegenerateClick = onRegenerateClick
                 )
             }
-        )
+        }
     }
 }
 
@@ -193,14 +239,15 @@ internal fun VideoScannerContent(
     uiState: VideoScannerViewModel.UiState,
     listState: LazyListState = rememberLazyListState(),
     onScanClick: () -> Unit,
-    onRegenerateClick: () -> Unit = {},
     onToggleSelection: (Long) -> Unit = {},
     onVideoClick: (VideoFile) -> Unit = {},
-    onDeleteSelected: () -> Unit = {}
+    onDeleteSelected: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val showDeleteButton = uiState.selectedVideoIds.isNotEmpty()
 
     Scaffold(
+        modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
@@ -256,19 +303,6 @@ internal fun VideoScannerContent(
             } else {
                 Text("Start Scanning", fontSize = 18.sp)
             }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedButton(
-            onClick = onRegenerateClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = MaterialTheme.shapes.medium,
-            enabled = !uiState.isScanning
-        ) {
-            Text("Regenerate Fingerprints", fontSize = 16.sp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

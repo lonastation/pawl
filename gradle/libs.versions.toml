@@ -1,6 +1,6 @@
 [versions]
 agp = "9.2.1"
-hilt-version = "2.60"
+hilt-version = "2.60.1"
 kotlinMetadataJvm = "2.3.21"
 ksp = "2.3.9"
 kotlin = "2.4.0"
