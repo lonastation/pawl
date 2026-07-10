@@ -33,7 +33,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -134,25 +133,32 @@ fun ImageScannerScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedButton(
+                Button(
                     onClick = onFindSimilarClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(56.dp),
                     shape = MaterialTheme.shapes.medium,
-                    enabled = !isScanning
+                    enabled = !isScanning,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.tertiary,
+                        disabledContentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
                 ) {
                     if (isScanning && uiState.scanMode == ScanMode.SIMILAR) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Scanning... ${uiState.scannedCount}/${uiState.totalImages}")
                     } else {
-                        Text("Find Similar", fontSize = 16.sp)
+                        Text("Find Similar", fontSize = 18.sp)
                     }
                 }
 
@@ -419,6 +425,24 @@ private fun ImageScannerScreenScanningPreview() {
                 scanMode = ScanMode.SIMILAR,
                 totalImages = 256,
                 scannedCount = 80
+            ),
+            onFindDuplicatesClick = {},
+            onFindSimilarClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "With delete selection")
+@Composable
+private fun ImageScannerScreenDeletePreview() {
+    PawlTheme {
+        ImageScannerScreen(
+            uiState = ImageScannerViewModel.UiState(
+                totalImages = 256,
+                totalDuplicates = 2,
+                scanMode = ScanMode.DUPLICATE,
+                duplicateGroups = listOf(previewImageGroup),
+                selectedImageIds = setOf(2L)
             ),
             onFindDuplicatesClick = {},
             onFindSimilarClick = {}

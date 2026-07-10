@@ -1,5 +1,6 @@
 package com.linn.pawl.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.linn.pawl.ui.theme.AppRed
 import com.linn.pawl.ui.theme.PawlTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +58,11 @@ fun SettingsScreen(
             )
         }
     ) { innerPadding ->
+        val regenerateButtonColors = ButtonDefaults.outlinedButtonColors(
+            contentColor = AppRed,
+            disabledContentColor = AppRed.copy(alpha = 0.38f),
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,9 +93,14 @@ fun SettingsScreen(
                 onClick = onRegenerateVideoClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(56.dp),
                 shape = MaterialTheme.shapes.medium,
-                enabled = !isVideoScanning
+                enabled = !isVideoScanning,
+                colors = regenerateButtonColors,
+                border = BorderStroke(
+                    1.dp,
+                    if (!isVideoScanning) AppRed else AppRed.copy(alpha = 0.38f)
+                ),
             ) {
                 Text("Regenerate Video Fingerprints", fontSize = 16.sp)
             }
@@ -118,9 +131,14 @@ fun SettingsScreen(
                 onClick = onRegenerateImageClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(56.dp),
                 shape = MaterialTheme.shapes.medium,
-                enabled = !isImageScanning
+                enabled = !isImageScanning,
+                colors = regenerateButtonColors,
+                border = BorderStroke(
+                    1.dp,
+                    if (!isImageScanning) AppRed else AppRed.copy(alpha = 0.38f)
+                ),
             ) {
                 Text("Regenerate Image Fingerprints", fontSize = 16.sp)
             }

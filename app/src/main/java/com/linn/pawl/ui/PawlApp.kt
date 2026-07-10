@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,9 @@ import com.linn.pawl.ui.image.ScanMode
 import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.settings.SettingsScreen
 import com.linn.pawl.ui.settings.SettingsViewModel
+import com.linn.pawl.ui.theme.AppBrown
+import com.linn.pawl.ui.theme.AppLightBrown
+import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.video.VideoDetailScreen
 import com.linn.pawl.ui.video.VideoScannerScreen
 import com.linn.pawl.ui.video.VideoScannerViewModel
@@ -167,24 +171,34 @@ fun PawlApp(
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar {
+                val navItemColors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = AppWhite,
+                    selectedTextColor = AppWhite,
+                    unselectedIconColor = AppLightBrown,
+                    unselectedTextColor = AppLightBrown,
+                    indicatorColor = AppLightBrown.copy(alpha = 0.35f),
+                )
+                NavigationBar(containerColor = AppBrown) {
                     NavigationBarItem(
                         selected = selectedTab == AppTab.Video,
                         onClick = { selectedTab = AppTab.Video },
                         icon = { Icon(Icons.Default.VideoLibrary, contentDescription = "Video") },
-                        label = { Text("Video") }
+                        label = { Text("Video") },
+                        colors = navItemColors,
                     )
                     NavigationBarItem(
                         selected = selectedTab == AppTab.Image,
                         onClick = { selectedTab = AppTab.Image },
                         icon = { Icon(Icons.Default.Image, contentDescription = "Image") },
-                        label = { Text("Image") }
+                        label = { Text("Image") },
+                        colors = navItemColors,
                     )
                     NavigationBarItem(
                         selected = selectedTab == AppTab.Settings,
                         onClick = { selectedTab = AppTab.Settings },
                         icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Setting") }
+                        label = { Text("Setting") },
+                        colors = navItemColors,
                     )
                 }
             }
