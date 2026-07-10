@@ -26,6 +26,9 @@ interface VideoSignatureDao {
     @Query("DELETE FROM video_signatures WHERE path IN (:paths)")
     suspend fun deleteByPaths(paths: List<String>)
 
+    @Query("SELECT COUNT(*) FROM video_signatures")
+    suspend fun count(): Int
+
     @Query("DELETE FROM video_signatures")
     suspend fun deleteAll()
 }

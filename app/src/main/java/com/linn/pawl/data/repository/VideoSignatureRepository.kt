@@ -56,6 +56,8 @@ class VideoSignatureRepository @Inject constructor(
         dao.deleteAll()
     }
 
+    suspend fun getCount(): Int = dao.count()
+
     private fun isCacheValid(entity: VideoSignatureEntity, video: VideoFile): Boolean {
         return entity.md5.isNotEmpty() &&
             entity.fileName == video.name &&

@@ -28,8 +28,10 @@ import com.linn.pawl.ui.theme.PawlTheme
 fun SettingsScreen(
     isVideoScanning: Boolean,
     onRegenerateVideoClick: () -> Unit,
+    videoFingerprintCount: Int,
     isImageScanning: Boolean,
     onRegenerateImageClick: () -> Unit,
+    imageFingerprintCount: Int,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -67,6 +69,13 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
+                text = "Cached fingerprints: $videoFingerprintCount",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
                 text = "Clear cached fingerprints and rescan all videos.",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -89,6 +98,13 @@ fun SettingsScreen(
                 text = "Image",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Cached fingerprints: $imageFingerprintCount",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -119,8 +135,10 @@ private fun SettingsScreenPreview() {
         SettingsScreen(
             isVideoScanning = false,
             onRegenerateVideoClick = {},
+            videoFingerprintCount = 42,
             isImageScanning = false,
-            onRegenerateImageClick = {}
+            onRegenerateImageClick = {},
+            imageFingerprintCount = 128
         )
     }
 }
@@ -132,8 +150,10 @@ private fun SettingsScreenScanningPreview() {
         SettingsScreen(
             isVideoScanning = true,
             onRegenerateVideoClick = {},
+            videoFingerprintCount = 42,
             isImageScanning = true,
-            onRegenerateImageClick = {}
+            onRegenerateImageClick = {},
+            imageFingerprintCount = 128
         )
     }
 }

@@ -58,6 +58,7 @@ import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,7 @@ import com.linn.pawl.ui.ImageScannerScreen
 import com.linn.pawl.ui.ImageScannerViewModel
 import com.linn.pawl.ui.ScanMode
 import com.linn.pawl.ui.SettingsScreen
+import com.linn.pawl.ui.SettingsViewModel
 import com.linn.pawl.ui.VideoDetailScreen
 import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.theme.AppWhite
@@ -99,6 +101,7 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
     private val videoViewModel: VideoScannerViewModel by viewModels()
     private val imageViewModel: ImageScannerViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -110,7 +113,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     VideoScannerApp(
                         videoViewModel = videoViewModel,
-                        imageViewModel = imageViewModel
+                        imageViewModel = imageViewModel,
+                        settingsViewModel = settingsViewModel
                     )
                 }
             }
@@ -122,10 +126,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun VideoScannerApp(
     videoViewModel: VideoScannerViewModel,
-    imageViewModel: ImageScannerViewModel
+    imageViewModel: ImageScannerViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
     val videoUiState by videoViewModel.uiState.collectAsStateWithLifecycle()
     val imageUiState by imageViewModel.uiState.collectAsStateWithLifecycle()
+    val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
     val videoPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -195,6 +201,12 @@ fun VideoScannerApp(
     var selectedImageId by remember { mutableLongStateOf(-1L) }
     val videoListState = rememberLazyListState()
     val imageListState = rememberLazyListState()
+
+    LaunchedEffect(selectedTab, videoUiState.isScanning, imageUiState.isScanning) {
+        if (selectedTab == AppTab.Settings && !videoUiState.isScanning && !imageUiState.isScanning) {
+            settingsViewModel.refreshCounts()
+        }
+    }
 
     val selectedVideo = if (selectedVideoId >= 0) {
         videoUiState.duplicateGroups
@@ -317,8 +329,10 @@ fun VideoScannerApp(
                     modifier = Modifier.padding(innerPadding),
                     isVideoScanning = videoUiState.isScanning,
                     onRegenerateVideoClick = onRegenerateVideoClick,
+                    videoFingerprintCount = settingsUiState.videoFingerprintCount,
                     isImageScanning = imageUiState.isScanning,
-                    onRegenerateImageClick = onRegenerateImageClick
+                    onRegenerateImageClick = onRegenerateImageClick,
+                    imageFingerprintCount = settingsUiState.imageFingerprintCount
                 )
             }
         }

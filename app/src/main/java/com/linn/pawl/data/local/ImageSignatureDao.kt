@@ -23,6 +23,9 @@ interface ImageSignatureDao {
     @Query("DELETE FROM image_signatures WHERE path IN (:paths)")
     suspend fun deleteByPaths(paths: List<String>)
 
+    @Query("SELECT COUNT(*) FROM image_signatures")
+    suspend fun count(): Int
+
     @Query("DELETE FROM image_signatures")
     suspend fun deleteAll()
 }

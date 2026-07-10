@@ -83,7 +83,7 @@ fun ImageScannerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Image",
+                        text = "VM-LIKE",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.offset(y = 8.dp)
