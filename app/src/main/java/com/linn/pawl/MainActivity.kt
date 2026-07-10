@@ -77,7 +77,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.setValue
+import com.linn.pawl.ui.ImageDetailScreen
 import com.linn.pawl.ui.ImageScannerScreen
+import com.linn.pawl.ui.ImageScannerViewModel
+import com.linn.pawl.ui.ScanMode
 import com.linn.pawl.ui.SettingsScreen
 import com.linn.pawl.ui.VideoDetailScreen
 import com.linn.pawl.ui.navigation.AppTab
@@ -94,7 +97,8 @@ import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val viewModel: VideoScannerViewModel by viewModels()
+    private val videoViewModel: VideoScannerViewModel by viewModels()
+    private val imageViewModel: ImageScannerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,7 +108,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    VideoScannerApp(viewModel = viewModel)
+                    VideoScannerApp(
+                        videoViewModel = videoViewModel,
+                        imageViewModel = imageViewModel
+                    )
                 }
             }
         }
@@ -114,53 +121,113 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoScannerApp(
-    viewModel: VideoScannerViewModel
+    videoViewModel: VideoScannerViewModel,
+    imageViewModel: ImageScannerViewModel
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val videoUiState by videoViewModel.uiState.collectAsStateWithLifecycle()
+    val imageUiState by imageViewModel.uiState.collectAsStateWithLifecycle()
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val videoPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.values.all { it }
         if (allGranted) {
-            viewModel.startScan()
+            videoViewModel.startScan()
         }
     }
 
-    val regeneratePermissionLauncher = rememberLauncherForActivityResult(
+    val regenerateVideoPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.values.all { it }
         if (allGranted) {
-            viewModel.regenerateFingerprintsAndScan()
+            videoViewModel.regenerateFingerprintsAndScan()
+        }
+    }
+
+    var pendingImageScanMode by remember { mutableStateOf<ScanMode?>(null) }
+
+    val imagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            when (pendingImageScanMode) {
+                ScanMode.DUPLICATE -> imageViewModel.startDuplicateScan()
+                ScanMode.SIMILAR -> imageViewModel.startSimilarScan()
+                null -> {}
+            }
+        }
+        pendingImageScanMode = null
+    }
+
+    val regenerateImagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            imageViewModel.regenerateFingerprintsAndScan()
         }
     }
 
     val context = LocalContext.current
 
-    val deleteLauncher = rememberLauncherForActivityResult(
+    val videoDeleteLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val deletedIds = uiState.selectedVideoIds
-            viewModel.onVideosDeleted(deletedIds)
+            val deletedIds = videoUiState.selectedVideoIds
+            videoViewModel.onVideosDeleted(deletedIds)
+        }
+    }
+
+    val imageDeleteLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val deletedIds = imageUiState.selectedImageIds
+            imageViewModel.onImagesDeleted(deletedIds)
         }
     }
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
-    val listState = rememberLazyListState()
+    var selectedImageId by remember { mutableLongStateOf(-1L) }
+    val videoListState = rememberLazyListState()
+    val imageListState = rememberLazyListState()
+
     val selectedVideo = if (selectedVideoId >= 0) {
-        uiState.duplicateGroups
+        videoUiState.duplicateGroups
             .flatMap { it.videos }
             .find { it.mediaId == selectedVideoId }
     } else {
         null
     }
 
-    val onRegenerateClick: () -> Unit = {
-        regeneratePermissionLauncher.launch(
+    val selectedImage = if (selectedImageId >= 0) {
+        imageUiState.duplicateGroups
+            .flatMap { it.images }
+            .find { it.mediaId == selectedImageId }
+    } else {
+        null
+    }
+
+    val onRegenerateVideoClick: () -> Unit = {
+        regenerateVideoPermissionLauncher.launch(
             arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
+        )
+    }
+
+    val onRegenerateImageClick: () -> Unit = {
+        regenerateImagePermissionLauncher.launch(
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+        )
+    }
+
+    val requestImageScan: (ScanMode) -> Unit = { mode ->
+        pendingImageScanMode = mode
+        imagePermissionLauncher.launch(
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
         )
     }
 
@@ -169,6 +236,12 @@ fun VideoScannerApp(
         VideoDetailScreen(
             video = selectedVideo,
             onBack = { selectedVideoId = -1L }
+        )
+    } else if (selectedImage != null) {
+        BackHandler { selectedImageId = -1L }
+        ImageDetailScreen(
+            image = selectedImage,
+            onBack = { selectedImageId = -1L }
         )
     } else {
         Scaffold(
@@ -199,34 +272,53 @@ fun VideoScannerApp(
             when (selectedTab) {
                 AppTab.Video -> VideoScannerContent(
                     modifier = Modifier.padding(innerPadding),
-                    uiState = uiState,
-                    listState = listState,
+                    uiState = videoUiState,
+                    listState = videoListState,
                     onScanClick = {
-                        permissionLauncher.launch(
+                        videoPermissionLauncher.launch(
                             arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
                         )
                     },
-                    onToggleSelection = viewModel::toggleVideoSelection,
+                    onToggleSelection = videoViewModel::toggleVideoSelection,
                     onVideoClick = { video -> selectedVideoId = video.mediaId },
                     onDeleteSelected = {
-                        val uris = viewModel.getSelectedVideoUris()
+                        val uris = videoViewModel.getSelectedVideoUris()
                         if (uris.isEmpty()) return@VideoScannerContent
                         val intentSender = MediaStore.createDeleteRequest(
                             context.contentResolver,
                             uris
                         ).intentSender
-                        deleteLauncher.launch(
+                        videoDeleteLauncher.launch(
                             IntentSenderRequest.Builder(intentSender).build()
                         )
                     }
                 )
                 AppTab.Image -> ImageScannerScreen(
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(innerPadding),
+                    uiState = imageUiState,
+                    listState = imageListState,
+                    onFindDuplicatesClick = { requestImageScan(ScanMode.DUPLICATE) },
+                    onFindSimilarClick = { requestImageScan(ScanMode.SIMILAR) },
+                    onToggleSelection = imageViewModel::toggleImageSelection,
+                    onImageClick = { image -> selectedImageId = image.mediaId },
+                    onDeleteSelected = {
+                        val uris = imageViewModel.getSelectedImageUris()
+                        if (uris.isEmpty()) return@ImageScannerScreen
+                        val intentSender = MediaStore.createDeleteRequest(
+                            context.contentResolver,
+                            uris
+                        ).intentSender
+                        imageDeleteLauncher.launch(
+                            IntentSenderRequest.Builder(intentSender).build()
+                        )
+                    }
                 )
                 AppTab.Settings -> SettingsScreen(
                     modifier = Modifier.padding(innerPadding),
-                    isScanning = uiState.isScanning,
-                    onRegenerateClick = onRegenerateClick
+                    isVideoScanning = videoUiState.isScanning,
+                    onRegenerateVideoClick = onRegenerateVideoClick,
+                    isImageScanning = imageUiState.isScanning,
+                    onRegenerateImageClick = onRegenerateImageClick
                 )
             }
         }
@@ -236,13 +328,13 @@ fun VideoScannerApp(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun VideoScannerContent(
+    modifier: Modifier = Modifier,
     uiState: VideoScannerViewModel.UiState,
     listState: LazyListState = rememberLazyListState(),
     onScanClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
     onVideoClick: (VideoFile) -> Unit = {},
     onDeleteSelected: () -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     val showDeleteButton = uiState.selectedVideoIds.isNotEmpty()
 

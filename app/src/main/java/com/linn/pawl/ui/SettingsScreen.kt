@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -20,14 +21,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.WindowInsets
 import com.linn.pawl.ui.theme.PawlTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    isScanning: Boolean,
-    onRegenerateClick: () -> Unit,
+    isVideoScanning: Boolean,
+    onRegenerateVideoClick: () -> Unit,
+    isImageScanning: Boolean,
+    onRegenerateImageClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -58,22 +60,53 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             Text(
+                text = "Video",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
                 text = "Clear cached fingerprints and rescan all videos.",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
-                onClick = onRegenerateClick,
+                onClick = onRegenerateVideoClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = MaterialTheme.shapes.medium,
-                enabled = !isScanning
+                enabled = !isVideoScanning
             ) {
-                Text("Regenerate Fingerprints", fontSize = 16.sp)
+                Text("Regenerate Video Fingerprints", fontSize = 16.sp)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Image",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Clear cached fingerprints and rescan all images.",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onRegenerateImageClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = MaterialTheme.shapes.medium,
+                enabled = !isImageScanning
+            ) {
+                Text("Regenerate Image Fingerprints", fontSize = 16.sp)
             }
         }
     }
@@ -84,8 +117,10 @@ fun SettingsScreen(
 private fun SettingsScreenPreview() {
     PawlTheme {
         SettingsScreen(
-            isScanning = false,
-            onRegenerateClick = {}
+            isVideoScanning = false,
+            onRegenerateVideoClick = {},
+            isImageScanning = false,
+            onRegenerateImageClick = {}
         )
     }
 }
@@ -95,8 +130,10 @@ private fun SettingsScreenPreview() {
 private fun SettingsScreenScanningPreview() {
     PawlTheme {
         SettingsScreen(
-            isScanning = true,
-            onRegenerateClick = {}
+            isVideoScanning = true,
+            onRegenerateVideoClick = {},
+            isImageScanning = true,
+            onRegenerateImageClick = {}
         )
     }
 }

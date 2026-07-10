@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.PawlDatabase
 import com.linn.pawl.data.local.VideoSignatureDao
 import dagger.Module
@@ -25,6 +26,26 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS image_signatures (
+                    path TEXT NOT NULL PRIMARY KEY,
+                    fileName TEXT NOT NULL,
+                    lastModified INTEGER NOT NULL,
+                    fileSize INTEGER NOT NULL,
+                    width INTEGER NOT NULL,
+                    height INTEGER NOT NULL,
+                    md5 TEXT NOT NULL,
+                    dHash INTEGER NOT NULL,
+                    computedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -35,12 +56,17 @@ object DatabaseModule {
             PawlDatabase::class.java,
             "pawl.db"
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
     }
 
     @Provides
     fun provideVideoSignatureDao(database: PawlDatabase): VideoSignatureDao {
         return database.videoSignatureDao()
+    }
+
+    @Provides
+    fun provideImageSignatureDao(database: PawlDatabase): ImageSignatureDao {
+        return database.imageSignatureDao()
     }
 }
