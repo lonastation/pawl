@@ -5,9 +5,9 @@ import android.graphics.BitmapFactory
 import androidx.core.graphics.scale
 import com.linn.pawl.data.model.ImageSignature
 import com.linn.pawl.data.repository.ImageSignatureRepository
-import com.linn.pawl.ui.ImageDuplicateGroup
-import com.linn.pawl.ui.ImageFile
-import com.linn.pawl.ui.MatchType
+import com.linn.pawl.ui.image.ImageDuplicateGroup
+import com.linn.pawl.ui.image.ImageFile
+import com.linn.pawl.ui.image.MatchType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream

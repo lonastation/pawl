@@ -3,7 +3,7 @@ package com.linn.pawl.data.repository
 import com.linn.pawl.data.local.VideoSignatureDao
 import com.linn.pawl.data.local.VideoSignatureEntity
 import com.linn.pawl.data.model.VideoSignature
-import com.linn.pawl.ui.VideoFile
+import com.linn.pawl.ui.video.VideoFile
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -5,8 +5,8 @@ import android.media.MediaMetadataRetriever
 import androidx.core.graphics.scale
 import com.linn.pawl.data.model.VideoSignature
 import com.linn.pawl.data.repository.VideoSignatureRepository
-import com.linn.pawl.ui.DuplicateGroup
-import com.linn.pawl.ui.VideoFile
+import com.linn.pawl.ui.video.DuplicateGroup
+import com.linn.pawl.ui.video.VideoFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream

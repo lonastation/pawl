@@ -3,7 +3,7 @@ package com.linn.pawl.data.repository
 import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.ImageSignatureEntity
 import com.linn.pawl.data.model.ImageSignature
-import com.linn.pawl.ui.ImageFile
+import com.linn.pawl.ui.image.ImageFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
