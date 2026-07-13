@@ -10,10 +10,12 @@ import com.linn.pawl.data.repository.ImageSignatureRepository
 import com.linn.pawl.service.ImageScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -69,27 +71,35 @@ class ImageScannerViewModel @Inject constructor(
                 selectedImageIds = emptySet()
             )
 
-            if (clearFingerprints) {
-                signatureRepository.clearAll()
-            }
-
-            val allImages = getAllImages()
-            _uiState.value = _uiState.value.copy(totalImages = allImages.size)
-
-            val groups = imageScanner.findSimilarImages(
-                images = allImages,
-                onProgress = { scanned ->
-                    _uiState.value = _uiState.value.copy(scannedCount = scanned)
+            try {
+                if (clearFingerprints) {
+                    signatureRepository.clearAll()
                 }
-            )
 
-            val totalDuplicates = groups.sumOf { it.images.size } - groups.size
+                val allImages = withContext(Dispatchers.IO) { getAllImages() }
+                _uiState.value = _uiState.value.copy(totalImages = allImages.size)
 
-            _uiState.value = _uiState.value.copy(
-                isScanning = false,
-                duplicateGroups = groups,
-                totalDuplicates = totalDuplicates
-            )
+                val groups = imageScanner.findSimilarImages(
+                    images = allImages,
+                    onProgress = { scanned ->
+                        _uiState.value = _uiState.value.copy(scannedCount = scanned)
+                    }
+                )
+
+                val totalDuplicates = groups.sumOf { it.images.size } - groups.size
+
+                _uiState.value = _uiState.value.copy(
+                    isScanning = false,
+                    duplicateGroups = groups,
+                    totalDuplicates = totalDuplicates
+                )
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(
+                    isScanning = false,
+                    duplicateGroups = emptyList(),
+                    totalDuplicates = 0
+                )
+            }
         }
     }
 

@@ -116,20 +116,26 @@ class ImageScanner @Inject constructor(
     }
 
     private fun extractSignature(image: ImageFile): ImageSignature? {
-        val md5 = computeFileMd5(image.path) ?: return null
-        // BitmapFactory decodes only the first frame for GIFs.
-        val bitmap = decodeBitmap(image.path) ?: return null
-
         return try {
-            ImageSignature(
-                md5 = md5,
-                dHash = computeDHash(bitmap),
-                pHash = computePHash(bitmap),
-                width = bitmap.width,
-                height = bitmap.height
-            )
-        } finally {
-            bitmap.recycle()
+            val md5 = computeFileMd5(image.path) ?: return null
+            // BitmapFactory decodes only the first frame for GIFs.
+            val bitmap = decodeBitmap(image.path) ?: return null
+
+            try {
+                if (bitmap.width <= 0 || bitmap.height <= 0) return null
+                ImageSignature(
+                    md5 = md5,
+                    dHash = computeDHash(bitmap),
+                    pHash = computePHash(bitmap),
+                    width = bitmap.width,
+                    height = bitmap.height
+                )
+            } finally {
+                bitmap.recycle()
+            }
+        } catch (_: Throwable) {
+            // Skip corrupt / pathological images instead of crashing the scan.
+            null
         }
     }
 
@@ -138,8 +144,8 @@ class ImageScanner @Inject constructor(
             val options = BitmapFactory.Options().apply {
                 inSampleSize = calculateInSampleSize(path)
             }
-            BitmapFactory.decodeFile(path, options)
-        } catch (_: Exception) {
+            BitmapFactory.decodeFile(path, options)?.takeIf { it.width > 0 && it.height > 0 }
+        } catch (_: Throwable) {
             null
         }
     }
@@ -148,6 +154,7 @@ class ImageScanner @Inject constructor(
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(path, bounds)
         val maxDim = maxOf(bounds.outWidth, bounds.outHeight)
+        if (maxDim <= 0) return 1
         var sampleSize = 1
         while (maxDim / sampleSize > 512) {
             sampleSize *= 2
@@ -169,7 +176,7 @@ class ImageScanner @Inject constructor(
                 }
             }
             digest.digest().joinToString("") { "%02x".format(it) }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             null
         }
     }
@@ -252,30 +259,49 @@ class ImageScanner @Inject constructor(
         return hash
     }
 
-    /** Scale so the image covers [targetW×targetH], then center-crop (keeps aspect ratio). */
+    /**
+     * Aspect-preserving center-crop to [targetW×targetH].
+     * Crops in source space first, then scales — avoids allocating huge bitmaps for
+     * extreme aspect ratios (which previously could OOM and kill the scan).
+     */
     private fun scaleCenterCrop(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
         if (bitmap.width == targetWidth && bitmap.height == targetHeight) {
             return bitmap
+        }
+        if (bitmap.width <= 0 || bitmap.height <= 0 || targetWidth <= 0 || targetHeight <= 0) {
+            return Bitmap.createBitmap(
+                targetWidth.coerceAtLeast(1),
+                targetHeight.coerceAtLeast(1),
+                Bitmap.Config.ARGB_8888
+            )
         }
 
         val scale = max(
             targetWidth.toFloat() / bitmap.width,
             targetHeight.toFloat() / bitmap.height
         )
-        val scaledWidth = max(targetWidth, (bitmap.width * scale).toInt())
-        val scaledHeight = max(targetHeight, (bitmap.height * scale).toInt())
-        val scaled = bitmap.scale(scaledWidth, scaledHeight)
+        val srcW = (targetWidth / scale).toInt().coerceIn(1, bitmap.width)
+        val srcH = (targetHeight / scale).toInt().coerceIn(1, bitmap.height)
+        val srcX = ((bitmap.width - srcW) / 2).coerceAtLeast(0)
+        val srcY = ((bitmap.height - srcH) / 2).coerceAtLeast(0)
+        // Clamp so createBitmap never exceeds source bounds after integer rounding.
+        val safeW = min(srcW, bitmap.width - srcX)
+        val safeH = min(srcH, bitmap.height - srcY)
 
-        val x = ((scaled.width - targetWidth) / 2).coerceAtLeast(0)
-        val y = ((scaled.height - targetHeight) / 2).coerceAtLeast(0)
-        val cropW = min(targetWidth, scaled.width)
-        val cropH = min(targetHeight, scaled.height)
-        val cropped = Bitmap.createBitmap(scaled, x, y, cropW, cropH)
-
-        if (scaled !== bitmap && scaled !== cropped) {
-            scaled.recycle()
+        if (safeW <= 0 || safeH <= 0) {
+            return Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
         }
-        return cropped
+
+        val cropped = Bitmap.createBitmap(bitmap, srcX, srcY, safeW, safeH)
+        if (cropped.width == targetWidth && cropped.height == targetHeight) {
+            return cropped
+        }
+
+        val scaled = cropped.scale(targetWidth, targetHeight)
+        if (cropped !== bitmap && cropped !== scaled) {
+            cropped.recycle()
+        }
+        return scaled
     }
 
     private fun dct2D(input: Array<DoubleArray>, n: Int): Array<DoubleArray> {
