@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
 
     implementation(libs.hilt.android)
+    implementation(libs.error.prone.annotations)
     ksp(libs.hilt.compiler)
     ksp(libs.kotlin.metadata.jvm)
 

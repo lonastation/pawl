@@ -15,9 +15,11 @@ composeBom = "2026.06.01"
 materialIconsCore = "1.7.8"
 room = "2.8.4"
 media3 = "1.10.1"
+errorProneAnnotations = "2.50.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+error-prone-annotations = { group = "com.google.errorprone", name = "error_prone_annotations", version.ref = "errorProneAnnotations" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt-version" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt-version" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
