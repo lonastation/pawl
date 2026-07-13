@@ -214,7 +214,7 @@ fun ImageScannerScreen(
                     )
                 ) {
                     Text(
-                        text = "Delete (${uiState.selectedImageIds.size})",
+                        text = "Move to trash (${uiState.selectedImageIds.size})",
                         fontSize = 18.sp
                     )
                 }

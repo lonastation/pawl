@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.linn.pawl.data.local.IgnoredDuplicateGroupDao
 import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.PawlDatabase
+import com.linn.pawl.data.local.RecycledMediaDao
 import com.linn.pawl.data.local.VideoSignatureDao
 import dagger.Module
 import dagger.Provides
@@ -73,6 +74,31 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS recycled_media (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    mediaType TEXT NOT NULL,
+                    originalMediaId INTEGER NOT NULL,
+                    displayName TEXT NOT NULL,
+                    mimeType TEXT NOT NULL,
+                    sizeBytes INTEGER NOT NULL,
+                    width INTEGER NOT NULL,
+                    height INTEGER NOT NULL,
+                    durationMs INTEGER NOT NULL,
+                    originalPath TEXT NOT NULL,
+                    relativePath TEXT NOT NULL,
+                    trashFileName TEXT NOT NULL,
+                    dateTaken INTEGER NOT NULL,
+                    recycledAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -83,7 +109,13 @@ object DatabaseModule {
             PawlDatabase::class.java,
             "pawl.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6
+            )
             .build()
     }
 
@@ -100,5 +132,10 @@ object DatabaseModule {
     @Provides
     fun provideIgnoredDuplicateGroupDao(database: PawlDatabase): IgnoredDuplicateGroupDao {
         return database.ignoredDuplicateGroupDao()
+    }
+
+    @Provides
+    fun provideRecycledMediaDao(database: PawlDatabase): RecycledMediaDao {
+        return database.recycledMediaDao()
     }
 }

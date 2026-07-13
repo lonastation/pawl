@@ -213,7 +213,7 @@ fun VideoScannerScreen(
                     )
                 ) {
                     Text(
-                        text = "Delete (${uiState.selectedVideoIds.size})",
+                        text = "Move to trash (${uiState.selectedVideoIds.size})",
                         fontSize = 18.sp
                     )
                 }

@@ -31,6 +31,7 @@ import com.linn.pawl.ui.theme.PawlTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    modifier: Modifier = Modifier,
     isVideoScanning: Boolean,
     onRegenerateVideoClick: () -> Unit,
     videoFingerprintCount: Int,
@@ -41,7 +42,8 @@ fun SettingsScreen(
     imageFingerprintCount: Int,
     imageIgnoredGroupCount: Int,
     onClearIgnoredImageGroups: () -> Unit,
-    modifier: Modifier = Modifier
+    recycledCount: Int = 0,
+    onOpenRecyclingStation: () -> Unit = {}
 ) {
     Scaffold(
         modifier = modifier,
@@ -76,6 +78,40 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            Text(
+                text = "Recycling Station",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Items in station: $recycledCount",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Restore or permanently delete items moved to the recycling station.",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onOpenRecyclingStation,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = regenerateButtonColors,
+                border = BorderStroke(1.dp, AppRed),
+            ) {
+                Text("Open Recycling Station", fontSize = 16.sp)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = "Video",
                 fontSize = 16.sp,
@@ -235,7 +271,9 @@ private fun SettingsScreenPreview() {
             onRegenerateImageClick = {},
             imageFingerprintCount = 128,
             imageIgnoredGroupCount = 5,
-            onClearIgnoredImageGroups = {}
+            onClearIgnoredImageGroups = {},
+            recycledCount = 2,
+            onOpenRecyclingStation = {}
         )
     }
 }
@@ -254,7 +292,9 @@ private fun SettingsScreenScanningPreview() {
             onRegenerateImageClick = {},
             imageFingerprintCount = 128,
             imageIgnoredGroupCount = 0,
-            onClearIgnoredImageGroups = {}
+            onClearIgnoredImageGroups = {},
+            recycledCount = 0,
+            onOpenRecyclingStation = {}
         )
     }
 }

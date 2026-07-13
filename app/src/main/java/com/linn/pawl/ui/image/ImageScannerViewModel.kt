@@ -195,11 +195,14 @@ class ImageScannerViewModel @Inject constructor(
     }
 
     fun getSelectedImageUris(): List<Uri> {
+        return getSelectedImages().map { it.contentUri }
+    }
+
+    fun getSelectedImages(): List<ImageFile> {
         val selected = _uiState.value.selectedImageIds
         return _uiState.value.duplicateGroups
             .flatMap { it.images }
             .filter { it.mediaId in selected }
-            .map { it.contentUri }
     }
 
     fun ignoreGroup(group: ImageDuplicateGroup) {

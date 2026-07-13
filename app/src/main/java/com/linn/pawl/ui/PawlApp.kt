@@ -9,6 +9,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Settings
@@ -27,16 +28,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.linn.pawl.ui.image.ImageDetailScreen
 import com.linn.pawl.ui.image.ImageScannerScreen
 import com.linn.pawl.ui.image.ImageScannerViewModel
 import com.linn.pawl.ui.navigation.AppTab
+import com.linn.pawl.ui.recycle.RecyclingStationScreen
+import com.linn.pawl.ui.recycle.RecyclingStationViewModel
 import com.linn.pawl.ui.settings.SettingsScreen
 import com.linn.pawl.ui.settings.SettingsViewModel
 import com.linn.pawl.ui.theme.AppBrown
@@ -45,17 +48,26 @@ import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.video.VideoDetailScreen
 import com.linn.pawl.ui.video.VideoScannerScreen
 import com.linn.pawl.ui.video.VideoScannerViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PawlApp(
     videoViewModel: VideoScannerViewModel,
     imageViewModel: ImageScannerViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    recyclingStationViewModel: RecyclingStationViewModel
 ) {
     val videoUiState by videoViewModel.uiState.collectAsStateWithLifecycle()
     val imageUiState by imageViewModel.uiState.collectAsStateWithLifecycle()
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val recycleUiState by recyclingStationViewModel.uiState.collectAsStateWithLifecycle()
+
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    var pendingVideoDeleteIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var pendingImageDeleteIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
 
     val videoPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -94,33 +106,46 @@ fun PawlApp(
         }
     }
 
-    val context = LocalContext.current
-
     val videoDeleteLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            videoViewModel.onVideosDeleted(videoUiState.selectedVideoIds)
+            recyclingStationViewModel.onMediaStoreDeleteConfirmed()
+            videoViewModel.onVideosDeleted(pendingVideoDeleteIds)
+        } else {
+            recyclingStationViewModel.onMediaStoreDeleteCancelled()
         }
+        pendingVideoDeleteIds = emptySet()
     }
 
     val imageDeleteLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            imageViewModel.onImagesDeleted(imageUiState.selectedImageIds)
+            recyclingStationViewModel.onMediaStoreDeleteConfirmed()
+            imageViewModel.onImagesDeleted(pendingImageDeleteIds)
+        } else {
+            recyclingStationViewModel.onMediaStoreDeleteCancelled()
         }
+        pendingImageDeleteIds = emptySet()
     }
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     var selectedImageId by remember { mutableLongStateOf(-1L) }
+    var showRecyclingStation by rememberSaveable { mutableStateOf(false) }
     val videoListState = rememberLazyListState()
     val imageListState = rememberLazyListState()
 
     LaunchedEffect(selectedTab, videoUiState.isScanning, imageUiState.isScanning) {
         if (selectedTab == AppTab.Settings && !videoUiState.isScanning && !imageUiState.isScanning) {
             settingsViewModel.refreshCounts()
+        }
+    }
+
+    LaunchedEffect(showRecyclingStation) {
+        if (showRecyclingStation) {
+            recyclingStationViewModel.load()
         }
     }
 
@@ -164,6 +189,23 @@ fun PawlApp(
         ImageDetailScreen(
             image = selectedImage,
             onBack = { selectedImageId = -1L }
+        )
+    } else if (showRecyclingStation) {
+        BackHandler {
+            showRecyclingStation = false
+            settingsViewModel.refreshCounts()
+        }
+        RecyclingStationScreen(
+            uiState = recycleUiState,
+            trashFilePath = recyclingStationViewModel::trashFilePath,
+            onBack = {
+                showRecyclingStation = false
+                settingsViewModel.refreshCounts()
+            },
+            onFilterChange = recyclingStationViewModel::setFilter,
+            onToggleSelection = recyclingStationViewModel::toggleSelection,
+            onRestoreSelected = recyclingStationViewModel::restoreSelected,
+            onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected
         )
     } else {
         Scaffold(
@@ -214,15 +256,25 @@ fun PawlApp(
                     onVideoClick = { video -> selectedVideoId = video.mediaId },
                     onIgnoreGroup = videoViewModel::ignoreGroup,
                     onDeleteSelected = {
-                        val uris = videoViewModel.getSelectedVideoUris()
-                        if (uris.isEmpty()) return@VideoScannerScreen
-                        val intentSender = MediaStore.createDeleteRequest(
-                            context.contentResolver,
-                            uris
-                        ).intentSender
-                        videoDeleteLauncher.launch(
-                            IntentSenderRequest.Builder(intentSender).build()
-                        )
+                        val videos = videoViewModel.getSelectedVideos()
+                        if (videos.isEmpty()) return@VideoScannerScreen
+                        scope.launch {
+                            try {
+                                val staged = recyclingStationViewModel.stageVideosForRecycle(videos)
+                                if (staged.isEmpty()) return@launch
+                                pendingVideoDeleteIds = videos.map { it.mediaId }.toSet()
+                                val intentSender = MediaStore.createDeleteRequest(
+                                    context.contentResolver,
+                                    staged.map { it.contentUri }
+                                ).intentSender
+                                videoDeleteLauncher.launch(
+                                    IntentSenderRequest.Builder(intentSender).build()
+                                )
+                            } catch (_: Exception) {
+                                recyclingStationViewModel.onMediaStoreDeleteCancelled()
+                                pendingVideoDeleteIds = emptySet()
+                            }
+                        }
                     }
                 )
                 AppTab.Image -> ImageScannerScreen(
@@ -234,15 +286,25 @@ fun PawlApp(
                     onImageClick = { image -> selectedImageId = image.mediaId },
                     onIgnoreGroup = imageViewModel::ignoreGroup,
                     onDeleteSelected = {
-                        val uris = imageViewModel.getSelectedImageUris()
-                        if (uris.isEmpty()) return@ImageScannerScreen
-                        val intentSender = MediaStore.createDeleteRequest(
-                            context.contentResolver,
-                            uris
-                        ).intentSender
-                        imageDeleteLauncher.launch(
-                            IntentSenderRequest.Builder(intentSender).build()
-                        )
+                        val images = imageViewModel.getSelectedImages()
+                        if (images.isEmpty()) return@ImageScannerScreen
+                        scope.launch {
+                            try {
+                                val staged = recyclingStationViewModel.stageImagesForRecycle(images)
+                                if (staged.isEmpty()) return@launch
+                                pendingImageDeleteIds = images.map { it.mediaId }.toSet()
+                                val intentSender = MediaStore.createDeleteRequest(
+                                    context.contentResolver,
+                                    staged.map { it.contentUri }
+                                ).intentSender
+                                imageDeleteLauncher.launch(
+                                    IntentSenderRequest.Builder(intentSender).build()
+                                )
+                            } catch (_: Exception) {
+                                recyclingStationViewModel.onMediaStoreDeleteCancelled()
+                                pendingImageDeleteIds = emptySet()
+                            }
+                        }
                     }
                 )
                 AppTab.Settings -> SettingsScreen(
@@ -256,7 +318,9 @@ fun PawlApp(
                     onRegenerateImageClick = onRegenerateImageClick,
                     imageFingerprintCount = settingsUiState.imageFingerprintCount,
                     imageIgnoredGroupCount = settingsUiState.imageIgnoredGroupCount,
-                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups
+                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups,
+                    recycledCount = settingsUiState.recycledCount,
+                    onOpenRecyclingStation = { showRecyclingStation = true }
                 )
             }
         }

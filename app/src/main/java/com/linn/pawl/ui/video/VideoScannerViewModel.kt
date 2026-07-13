@@ -172,11 +172,14 @@ class VideoScannerViewModel @Inject constructor(
     }
 
     fun getSelectedVideoUris(): List<Uri> {
+        return getSelectedVideos().map { it.contentUri }
+    }
+
+    fun getSelectedVideos(): List<VideoFile> {
         val selected = _uiState.value.selectedVideoIds
         return _uiState.value.duplicateGroups
             .flatMap { it.videos }
             .filter { it.mediaId in selected }
-            .map { it.contentUri }
     }
 
     fun ignoreGroup(group: DuplicateGroup) {
