@@ -12,12 +12,18 @@ import kotlinx.coroutines.withContext
 import java.io.FileInputStream
 import java.security.MessageDigest
 import javax.inject.Inject
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sqrt
 
 class ImageScanner @Inject constructor(
     private val signatureRepository: ImageSignatureRepository
 ) {
 
-    private val maxHammingDistance = 10
+    /** Max Hamming distance per hash (64-bit). Both dHash and pHash must pass. */
+    private val maxHammingDistance = 6
 
     suspend fun findSimilarImages(
         images: List<ImageFile>,
@@ -74,7 +80,7 @@ class ImageScanner @Inject constructor(
                 val (path2, sig2) = signatureList[j]
                 if (path2 in processed) continue
 
-                if (hammingDistance(sig1.dHash, sig2.dHash) <= maxHammingDistance) {
+                if (areVisuallySimilar(sig1, sig2)) {
                     imageByPath[path2]?.let { similar.add(it) }
                     processed.add(path2)
                 }
@@ -89,15 +95,20 @@ class ImageScanner @Inject constructor(
         return groups
     }
 
+    private fun areVisuallySimilar(sig1: ImageSignature, sig2: ImageSignature): Boolean {
+        return hammingDistance(sig1.dHash, sig2.dHash) <= maxHammingDistance &&
+            hammingDistance(sig1.pHash, sig2.pHash) <= maxHammingDistance
+    }
+
     private fun extractSignature(image: ImageFile): ImageSignature? {
         val md5 = computeFileMd5(image.path) ?: return null
         val bitmap = decodeBitmap(image.path) ?: return null
 
         return try {
-            val dHash = computeDHash(bitmap)
             ImageSignature(
                 md5 = md5,
-                dHash = dHash,
+                dHash = computeDHash(bitmap),
+                pHash = computePHash(bitmap),
                 width = bitmap.width,
                 height = bitmap.height
             )
@@ -147,10 +158,18 @@ class ImageScanner @Inject constructor(
         }
     }
 
+    /**
+     * Difference hash: aspect-preserving center-crop to 9×8, then adjacent-pixel gradients → 64 bits.
+     * Intermediate 36×32 downsample reduces aliasing vs stretching straight to 9×8.
+     */
     private fun computeDHash(bitmap: Bitmap): Long {
         val hashWidth = 9
         val hashHeight = 8
-        val scaled = bitmap.scale(hashWidth, hashHeight)
+        val intermediate = scaleCenterCrop(bitmap, hashWidth * 4, hashHeight * 4)
+        val scaled = intermediate.scale(hashWidth, hashHeight)
+        if (intermediate !== bitmap && intermediate !== scaled) {
+            intermediate.recycle()
+        }
 
         val pixels = IntArray(hashWidth * hashHeight)
         scaled.getPixels(pixels, 0, hashWidth, 0, 0, hashWidth, hashHeight)
@@ -171,6 +190,114 @@ class ImageScanner @Inject constructor(
             }
         }
         return hash
+    }
+
+    /**
+     * Perceptual hash: DCT of 32×32 grayscale, then low-frequency 8×8 coefficients vs median.
+     */
+    private fun computePHash(bitmap: Bitmap): Long {
+        val size = 32
+        val hashSize = 8
+        val scaled = scaleCenterCrop(bitmap, size, size)
+
+        val pixels = IntArray(size * size)
+        scaled.getPixels(pixels, 0, size, 0, 0, size, size)
+        if (scaled !== bitmap) {
+            scaled.recycle()
+        }
+
+        val gray = Array(size) { y ->
+            DoubleArray(size) { x -> grayscale(pixels[y * size + x]).toDouble() }
+        }
+        val dct = dct2D(gray, size)
+
+        val coeffs = DoubleArray(hashSize * hashSize)
+        var idx = 0
+        for (y in 0 until hashSize) {
+            for (x in 0 until hashSize) {
+                coeffs[idx++] = dct[y][x]
+            }
+        }
+
+        // Median of AC coefficients (exclude DC at [0]).
+        val ac = coeffs.copyOfRange(1, coeffs.size).sorted()
+        val median = if (ac.size % 2 == 0) {
+            (ac[ac.size / 2 - 1] + ac[ac.size / 2]) / 2.0
+        } else {
+            ac[ac.size / 2]
+        }
+
+        var hash = 0L
+        for (i in 1 until coeffs.size) {
+            if (coeffs[i] > median) {
+                hash = hash or (1L shl (i - 1))
+            }
+        }
+        return hash
+    }
+
+    /** Scale so the image covers [targetW×targetH], then center-crop (keeps aspect ratio). */
+    private fun scaleCenterCrop(bitmap: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
+        if (bitmap.width == targetWidth && bitmap.height == targetHeight) {
+            return bitmap
+        }
+
+        val scale = max(
+            targetWidth.toFloat() / bitmap.width,
+            targetHeight.toFloat() / bitmap.height
+        )
+        val scaledWidth = max(targetWidth, (bitmap.width * scale).toInt())
+        val scaledHeight = max(targetHeight, (bitmap.height * scale).toInt())
+        val scaled = bitmap.scale(scaledWidth, scaledHeight)
+
+        val x = ((scaled.width - targetWidth) / 2).coerceAtLeast(0)
+        val y = ((scaled.height - targetHeight) / 2).coerceAtLeast(0)
+        val cropW = min(targetWidth, scaled.width)
+        val cropH = min(targetHeight, scaled.height)
+        val cropped = Bitmap.createBitmap(scaled, x, y, cropW, cropH)
+
+        if (scaled !== bitmap && scaled !== cropped) {
+            scaled.recycle()
+        }
+        return cropped
+    }
+
+    private fun dct2D(input: Array<DoubleArray>, n: Int): Array<DoubleArray> {
+        val temp = Array(n) { DoubleArray(n) }
+        val output = Array(n) { DoubleArray(n) }
+        val rowOut = DoubleArray(n)
+        val colIn = DoubleArray(n)
+        val colOut = DoubleArray(n)
+
+        for (y in 0 until n) {
+            dct1D(input[y], rowOut, n)
+            for (x in 0 until n) {
+                temp[y][x] = rowOut[x]
+            }
+        }
+
+        for (x in 0 until n) {
+            for (y in 0 until n) {
+                colIn[y] = temp[y][x]
+            }
+            dct1D(colIn, colOut, n)
+            for (y in 0 until n) {
+                output[y][x] = colOut[y]
+            }
+        }
+        return output
+    }
+
+    private fun dct1D(input: DoubleArray, output: DoubleArray, n: Int) {
+        val factor = PI / (2.0 * n)
+        for (k in 0 until n) {
+            var sum = 0.0
+            for (i in 0 until n) {
+                sum += input[i] * cos(factor * k * (2 * i + 1))
+            }
+            val alpha = if (k == 0) sqrt(1.0 / n) else sqrt(2.0 / n)
+            output[k] = alpha * sum
+        }
     }
 
     private fun grayscale(pixel: Int): Int {

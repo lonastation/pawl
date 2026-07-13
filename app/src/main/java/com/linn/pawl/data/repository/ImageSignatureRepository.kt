@@ -63,6 +63,7 @@ class ImageSignatureRepository @Inject constructor(
         return ImageSignature(
             md5 = md5,
             dHash = dHash,
+            pHash = pHash,
             width = width,
             height = height
         )
@@ -78,6 +79,7 @@ class ImageSignatureRepository @Inject constructor(
             height = signature.height,
             md5 = signature.md5,
             dHash = signature.dHash,
+            pHash = signature.pHash,
             computedAt = System.currentTimeMillis()
         )
     }

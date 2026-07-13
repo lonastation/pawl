@@ -46,6 +46,16 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE image_signatures ADD COLUMN pHash INTEGER NOT NULL DEFAULT 0"
+            )
+            // Old dHash used a coarser, aspect-stretching algorithm — force recompute.
+            db.execSQL("DELETE FROM image_signatures")
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -56,7 +66,7 @@ object DatabaseModule {
             PawlDatabase::class.java,
             "pawl.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
     }
 

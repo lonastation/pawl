@@ -13,5 +13,6 @@ data class ImageSignatureEntity(
     val height: Int,
     val md5: String,
     val dHash: Long,
+    val pHash: Long,
     val computedAt: Long
 )
