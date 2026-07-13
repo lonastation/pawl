@@ -231,7 +231,11 @@ fun ImageDuplicateGroupCard(
     onImageClick: (ImageFile) -> Unit = {},
     onIgnoreGroup: () -> Unit = {}
 ) {
-    val groupLabel = "Similar"
+    val groupLabel = if (group.images.any { it.isGif }) {
+        "Similar Gif(${group.images.size})"
+    } else {
+        "Similar Image(${group.images.size})"
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -254,15 +258,8 @@ fun ImageDuplicateGroupCard(
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${group.images.size}",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    TextButton(onClick = onIgnoreGroup) {
-                        Text("Ignore")
-                    }
+                TextButton(onClick = onIgnoreGroup) {
+                    Text("Ignore")
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
