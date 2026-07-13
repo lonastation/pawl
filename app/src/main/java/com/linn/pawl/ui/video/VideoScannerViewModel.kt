@@ -6,14 +6,18 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.data.model.DuplicateGroupKey
+import com.linn.pawl.data.repository.IgnoredDuplicateGroupRepository
 import com.linn.pawl.data.repository.VideoSignatureRepository
 import com.linn.pawl.service.VideoScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -21,7 +25,8 @@ import javax.inject.Inject
 class VideoScannerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val videoScanner: VideoScanner,
-    private val signatureRepository: VideoSignatureRepository
+    private val signatureRepository: VideoSignatureRepository,
+    private val ignoredGroupRepository: IgnoredDuplicateGroupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -46,27 +51,54 @@ class VideoScannerViewModel @Inject constructor(
                 selectedVideoIds = emptySet()
             )
 
-            if (clearFingerprints) {
-                signatureRepository.clearAll()
-            }
-
-            val allVideos = getAllVideos()
-            _uiState.value = _uiState.value.copy(totalVideos = allVideos.size)
-
-            val groups = videoScanner.findDuplicateVideos(
-                videos = allVideos,
-                onProgress = { scanned ->
-                    _uiState.value = _uiState.value.copy(scannedCount = scanned)
+            try {
+                if (clearFingerprints) {
+                    signatureRepository.clearAll()
                 }
-            )
 
-            val totalDuplicates = groups.sumOf { it.videos.size } - groups.size
+                val allVideos = withContext(Dispatchers.IO) { getAllVideos() }
+                _uiState.value = _uiState.value.copy(totalVideos = allVideos.size)
 
-            _uiState.value = _uiState.value.copy(
-                isScanning = false,
-                duplicateGroups = groups,
-                totalDuplicates = totalDuplicates
-            )
+                val groups = videoScanner.findDuplicateVideos(
+                    videos = allVideos,
+                    onProgress = { scanned ->
+                        _uiState.value = _uiState.value.copy(scannedCount = scanned)
+                    }
+                )
+
+                ignoredGroupRepository.pruneStale(
+                    DuplicateGroupKey.MEDIA_VIDEO,
+                    allVideos.map { it.path }
+                )
+                val visibleGroups = filterIgnoredGroups(groups)
+
+                val totalDuplicates = visibleGroups.sumOf { it.videos.size } - visibleGroups.size
+
+                _uiState.value = _uiState.value.copy(
+                    isScanning = false,
+                    duplicateGroups = visibleGroups,
+                    totalDuplicates = totalDuplicates
+                )
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(
+                    isScanning = false,
+                    duplicateGroups = emptyList(),
+                    totalDuplicates = 0
+                )
+            }
+        }
+    }
+
+    private suspend fun filterIgnoredGroups(
+        groups: List<DuplicateGroup>
+    ): List<DuplicateGroup> {
+        val ignoredKeys = ignoredGroupRepository.getIgnoredKeys(DuplicateGroupKey.MEDIA_VIDEO)
+        if (ignoredKeys.isEmpty()) return groups
+        return groups.filter { group ->
+            DuplicateGroupKey.fromPaths(
+                DuplicateGroupKey.MEDIA_VIDEO,
+                group.videos.map { it.path }
+            ) !in ignoredKeys
         }
     }
 
@@ -147,6 +179,32 @@ class VideoScannerViewModel @Inject constructor(
             .map { it.contentUri }
     }
 
+    fun ignoreGroup(group: DuplicateGroup) {
+        viewModelScope.launch {
+            ignoredGroupRepository.ignore(
+                DuplicateGroupKey.MEDIA_VIDEO,
+                group.videos.map { it.path }
+            )
+            val groupKey = DuplicateGroupKey.fromPaths(
+                DuplicateGroupKey.MEDIA_VIDEO,
+                group.videos.map { it.path }
+            )
+            val removedIds = group.videos.map { it.mediaId }.toSet()
+            val updatedGroups = _uiState.value.duplicateGroups.filter { existing ->
+                DuplicateGroupKey.fromPaths(
+                    DuplicateGroupKey.MEDIA_VIDEO,
+                    existing.videos.map { it.path }
+                ) != groupKey
+            }
+            val totalDuplicates = updatedGroups.sumOf { it.videos.size } - updatedGroups.size
+            _uiState.value = _uiState.value.copy(
+                duplicateGroups = updatedGroups,
+                totalDuplicates = totalDuplicates,
+                selectedVideoIds = _uiState.value.selectedVideoIds - removedIds
+            )
+        }
+    }
+
     fun onVideosDeleted(deletedIds: Set<Long>) {
         val deletedPaths = _uiState.value.duplicateGroups
             .flatMap { it.videos }
@@ -155,6 +213,10 @@ class VideoScannerViewModel @Inject constructor(
 
         viewModelScope.launch {
             signatureRepository.deleteByPaths(deletedPaths)
+            ignoredGroupRepository.pruneContainingPaths(
+                DuplicateGroupKey.MEDIA_VIDEO,
+                deletedPaths
+            )
         }
 
         val updatedGroups = _uiState.value.duplicateGroups.mapNotNull { group ->

@@ -17,6 +17,7 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
+import androidx.core.graphics.createBitmap
 
 class ImageScanner @Inject constructor(
     private val signatureRepository: ImageSignatureRepository
@@ -269,11 +270,7 @@ class ImageScanner @Inject constructor(
             return bitmap
         }
         if (bitmap.width <= 0 || bitmap.height <= 0 || targetWidth <= 0 || targetHeight <= 0) {
-            return Bitmap.createBitmap(
-                targetWidth.coerceAtLeast(1),
-                targetHeight.coerceAtLeast(1),
-                Bitmap.Config.ARGB_8888
-            )
+            return createBitmap(targetWidth.coerceAtLeast(1), targetHeight.coerceAtLeast(1))
         }
 
         val scale = max(
@@ -289,7 +286,7 @@ class ImageScanner @Inject constructor(
         val safeH = min(srcH, bitmap.height - srcY)
 
         if (safeW <= 0 || safeH <= 0) {
-            return Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+            return createBitmap(targetWidth, targetHeight)
         }
 
         val cropped = Bitmap.createBitmap(bitmap, srcX, srcY, safeW, safeH)

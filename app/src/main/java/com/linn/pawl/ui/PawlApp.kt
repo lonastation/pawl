@@ -212,6 +212,7 @@ fun PawlApp(
                     },
                     onToggleSelection = videoViewModel::toggleVideoSelection,
                     onVideoClick = { video -> selectedVideoId = video.mediaId },
+                    onIgnoreGroup = videoViewModel::ignoreGroup,
                     onDeleteSelected = {
                         val uris = videoViewModel.getSelectedVideoUris()
                         if (uris.isEmpty()) return@VideoScannerScreen
@@ -231,6 +232,7 @@ fun PawlApp(
                     onFindSimilarClick = requestImageScan,
                     onToggleSelection = imageViewModel::toggleImageSelection,
                     onImageClick = { image -> selectedImageId = image.mediaId },
+                    onIgnoreGroup = imageViewModel::ignoreGroup,
                     onDeleteSelected = {
                         val uris = imageViewModel.getSelectedImageUris()
                         if (uris.isEmpty()) return@ImageScannerScreen
@@ -248,9 +250,13 @@ fun PawlApp(
                     isVideoScanning = videoUiState.isScanning,
                     onRegenerateVideoClick = onRegenerateVideoClick,
                     videoFingerprintCount = settingsUiState.videoFingerprintCount,
+                    videoIgnoredGroupCount = settingsUiState.videoIgnoredGroupCount,
+                    onClearIgnoredVideoGroups = settingsViewModel::clearIgnoredVideoGroups,
                     isImageScanning = imageUiState.isScanning,
                     onRegenerateImageClick = onRegenerateImageClick,
-                    imageFingerprintCount = settingsUiState.imageFingerprintCount
+                    imageFingerprintCount = settingsUiState.imageFingerprintCount,
+                    imageIgnoredGroupCount = settingsUiState.imageIgnoredGroupCount,
+                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups
                 )
             }
         }

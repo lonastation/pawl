@@ -6,6 +6,8 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.data.model.DuplicateGroupKey
+import com.linn.pawl.data.repository.IgnoredDuplicateGroupRepository
 import com.linn.pawl.data.repository.ImageSignatureRepository
 import com.linn.pawl.service.ImageScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,7 +47,8 @@ data class ImageDuplicateGroup(
 class ImageScannerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val imageScanner: ImageScanner,
-    private val signatureRepository: ImageSignatureRepository
+    private val signatureRepository: ImageSignatureRepository,
+    private val ignoredGroupRepository: IgnoredDuplicateGroupRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -86,11 +89,17 @@ class ImageScannerViewModel @Inject constructor(
                     }
                 )
 
-                val totalDuplicates = groups.sumOf { it.images.size } - groups.size
+                ignoredGroupRepository.pruneStale(
+                    DuplicateGroupKey.MEDIA_IMAGE,
+                    allImages.map { it.path }
+                )
+                val visibleGroups = filterIgnoredGroups(groups)
+
+                val totalDuplicates = visibleGroups.sumOf { it.images.size } - visibleGroups.size
 
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
-                    duplicateGroups = groups,
+                    duplicateGroups = visibleGroups,
                     totalDuplicates = totalDuplicates
                 )
             } catch (_: Throwable) {
@@ -100,6 +109,19 @@ class ImageScannerViewModel @Inject constructor(
                     totalDuplicates = 0
                 )
             }
+        }
+    }
+
+    private suspend fun filterIgnoredGroups(
+        groups: List<ImageDuplicateGroup>
+    ): List<ImageDuplicateGroup> {
+        val ignoredKeys = ignoredGroupRepository.getIgnoredKeys(DuplicateGroupKey.MEDIA_IMAGE)
+        if (ignoredKeys.isEmpty()) return groups
+        return groups.filter { group ->
+            DuplicateGroupKey.fromPaths(
+                DuplicateGroupKey.MEDIA_IMAGE,
+                group.images.map { it.path }
+            ) !in ignoredKeys
         }
     }
 
@@ -180,6 +202,32 @@ class ImageScannerViewModel @Inject constructor(
             .map { it.contentUri }
     }
 
+    fun ignoreGroup(group: ImageDuplicateGroup) {
+        viewModelScope.launch {
+            ignoredGroupRepository.ignore(
+                DuplicateGroupKey.MEDIA_IMAGE,
+                group.images.map { it.path }
+            )
+            val groupKey = DuplicateGroupKey.fromPaths(
+                DuplicateGroupKey.MEDIA_IMAGE,
+                group.images.map { it.path }
+            )
+            val removedIds = group.images.map { it.mediaId }.toSet()
+            val updatedGroups = _uiState.value.duplicateGroups.filter { existing ->
+                DuplicateGroupKey.fromPaths(
+                    DuplicateGroupKey.MEDIA_IMAGE,
+                    existing.images.map { it.path }
+                ) != groupKey
+            }
+            val totalDuplicates = updatedGroups.sumOf { it.images.size } - updatedGroups.size
+            _uiState.value = _uiState.value.copy(
+                duplicateGroups = updatedGroups,
+                totalDuplicates = totalDuplicates,
+                selectedImageIds = _uiState.value.selectedImageIds - removedIds
+            )
+        }
+    }
+
     fun onImagesDeleted(deletedIds: Set<Long>) {
         val deletedPaths = _uiState.value.duplicateGroups
             .flatMap { it.images }
@@ -188,6 +236,10 @@ class ImageScannerViewModel @Inject constructor(
 
         viewModelScope.launch {
             signatureRepository.deleteByPaths(deletedPaths)
+            ignoredGroupRepository.pruneContainingPaths(
+                DuplicateGroupKey.MEDIA_IMAGE,
+                deletedPaths
+            )
         }
 
         val updatedGroups = _uiState.value.duplicateGroups.mapNotNull { group ->

@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -69,6 +70,7 @@ fun ImageScannerScreen(
     onFindSimilarClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
     onImageClick: (ImageFile) -> Unit = {},
+    onIgnoreGroup: (ImageDuplicateGroup) -> Unit = {},
     onDeleteSelected: () -> Unit = {},
 ) {
     val showDeleteButton = uiState.selectedImageIds.isNotEmpty()
@@ -190,7 +192,8 @@ fun ImageScannerScreen(
                             group = group,
                             selectedImageIds = uiState.selectedImageIds,
                             onToggleSelection = onToggleSelection,
-                            onImageClick = onImageClick
+                            onImageClick = onImageClick,
+                            onIgnoreGroup = { onIgnoreGroup(group) }
                         )
                     }
                 }
@@ -225,7 +228,8 @@ fun ImageDuplicateGroupCard(
     group: ImageDuplicateGroup,
     selectedImageIds: Set<Long> = emptySet(),
     onToggleSelection: (Long) -> Unit = {},
-    onImageClick: (ImageFile) -> Unit = {}
+    onImageClick: (ImageFile) -> Unit = {},
+    onIgnoreGroup: () -> Unit = {}
 ) {
     val groupLabel = "Similar"
 
@@ -241,7 +245,8 @@ fun ImageDuplicateGroupCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = groupLabel,
@@ -249,11 +254,16 @@ fun ImageDuplicateGroupCard(
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = "${group.images.size}",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${group.images.size}",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    TextButton(onClick = onIgnoreGroup) {
+                        Text("Ignore")
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
 

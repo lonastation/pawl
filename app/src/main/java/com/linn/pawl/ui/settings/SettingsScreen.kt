@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +34,13 @@ fun SettingsScreen(
     isVideoScanning: Boolean,
     onRegenerateVideoClick: () -> Unit,
     videoFingerprintCount: Int,
+    videoIgnoredGroupCount: Int,
+    onClearIgnoredVideoGroups: () -> Unit,
     isImageScanning: Boolean,
     onRegenerateImageClick: () -> Unit,
     imageFingerprintCount: Int,
+    imageIgnoredGroupCount: Int,
+    onClearIgnoredImageGroups: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -68,6 +74,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = "Video",
@@ -103,6 +110,40 @@ fun SettingsScreen(
                 ),
             ) {
                 Text("Regenerate Video Fingerprints", fontSize = 16.sp)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Ignored groups: $videoIgnoredGroupCount",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Show ignored video groups again on the next scan.",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onClearIgnoredVideoGroups,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = MaterialTheme.shapes.medium,
+                enabled = videoIgnoredGroupCount > 0 && !isVideoScanning,
+                colors = regenerateButtonColors,
+                border = BorderStroke(
+                    1.dp,
+                    if (videoIgnoredGroupCount > 0 && !isVideoScanning) {
+                        AppRed
+                    } else {
+                        AppRed.copy(alpha = 0.38f)
+                    }
+                ),
+            ) {
+                Text("Clear Ignored Video Groups", fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -142,11 +183,45 @@ fun SettingsScreen(
             ) {
                 Text("Regenerate Image Fingerprints", fontSize = 16.sp)
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Ignored groups: $imageIgnoredGroupCount",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Show ignored image groups again on the next scan.",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onClearIgnoredImageGroups,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = MaterialTheme.shapes.medium,
+                enabled = imageIgnoredGroupCount > 0 && !isImageScanning,
+                colors = regenerateButtonColors,
+                border = BorderStroke(
+                    1.dp,
+                    if (imageIgnoredGroupCount > 0 && !isImageScanning) {
+                        AppRed
+                    } else {
+                        AppRed.copy(alpha = 0.38f)
+                    }
+                ),
+            ) {
+                Text("Clear Ignored Image Groups", fontSize = 16.sp)
+            }
         }
     }
 }
 
-@Preview(showBackground = true, heightDp = 800)
+@Preview(showBackground = true, heightDp = 1000)
 @Composable
 private fun SettingsScreenPreview() {
     PawlTheme {
@@ -154,14 +229,18 @@ private fun SettingsScreenPreview() {
             isVideoScanning = false,
             onRegenerateVideoClick = {},
             videoFingerprintCount = 42,
+            videoIgnoredGroupCount = 3,
+            onClearIgnoredVideoGroups = {},
             isImageScanning = false,
             onRegenerateImageClick = {},
-            imageFingerprintCount = 128
+            imageFingerprintCount = 128,
+            imageIgnoredGroupCount = 5,
+            onClearIgnoredImageGroups = {}
         )
     }
 }
 
-@Preview(showBackground = true, heightDp = 800, name = "Scanning")
+@Preview(showBackground = true, heightDp = 1000, name = "Scanning")
 @Composable
 private fun SettingsScreenScanningPreview() {
     PawlTheme {
@@ -169,9 +248,13 @@ private fun SettingsScreenScanningPreview() {
             isVideoScanning = true,
             onRegenerateVideoClick = {},
             videoFingerprintCount = 42,
+            videoIgnoredGroupCount = 0,
+            onClearIgnoredVideoGroups = {},
             isImageScanning = true,
             onRegenerateImageClick = {},
-            imageFingerprintCount = 128
+            imageFingerprintCount = 128,
+            imageIgnoredGroupCount = 0,
+            onClearIgnoredImageGroups = {}
         )
     }
 }

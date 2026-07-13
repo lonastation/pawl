@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.linn.pawl.data.local.IgnoredDuplicateGroupDao
 import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.PawlDatabase
 import com.linn.pawl.data.local.VideoSignatureDao
@@ -56,6 +57,22 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS ignored_duplicate_groups (
+                    mediaType TEXT NOT NULL,
+                    groupKey TEXT NOT NULL,
+                    memberPaths TEXT NOT NULL,
+                    ignoredAt INTEGER NOT NULL,
+                    PRIMARY KEY(mediaType, groupKey)
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -66,7 +83,7 @@ object DatabaseModule {
             PawlDatabase::class.java,
             "pawl.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }
 
@@ -78,5 +95,10 @@ object DatabaseModule {
     @Provides
     fun provideImageSignatureDao(database: PawlDatabase): ImageSignatureDao {
         return database.imageSignatureDao()
+    }
+
+    @Provides
+    fun provideIgnoredDuplicateGroupDao(database: PawlDatabase): IgnoredDuplicateGroupDao {
+        return database.ignoredDuplicateGroupDao()
     }
 }

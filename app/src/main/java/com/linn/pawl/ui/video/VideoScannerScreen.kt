@@ -35,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -70,6 +71,7 @@ fun VideoScannerScreen(
     onScanClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
     onVideoClick: (VideoFile) -> Unit = {},
+    onIgnoreGroup: (DuplicateGroup) -> Unit = {},
     onDeleteSelected: () -> Unit = {},
 ) {
     val showDeleteButton = uiState.selectedVideoIds.isNotEmpty()
@@ -189,7 +191,8 @@ fun VideoScannerScreen(
                             group = group,
                             selectedVideoIds = uiState.selectedVideoIds,
                             onToggleSelection = onToggleSelection,
-                            onVideoClick = onVideoClick
+                            onVideoClick = onVideoClick,
+                            onIgnoreGroup = { onIgnoreGroup(group) }
                         )
                     }
                 }
@@ -224,7 +227,8 @@ fun VideoDuplicateGroupCard(
     group: DuplicateGroup,
     selectedVideoIds: Set<Long> = emptySet(),
     onToggleSelection: (Long) -> Unit = {},
-    onVideoClick: (VideoFile) -> Unit = {}
+    onVideoClick: (VideoFile) -> Unit = {},
+    onIgnoreGroup: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -238,7 +242,8 @@ fun VideoDuplicateGroupCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Duplicate Group",
@@ -246,11 +251,16 @@ fun VideoDuplicateGroupCard(
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = "${group.videos.size}",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${group.videos.size}",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    TextButton(onClick = onIgnoreGroup) {
+                        Text("Ignore")
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
 
