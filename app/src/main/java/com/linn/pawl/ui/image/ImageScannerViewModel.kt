@@ -17,16 +17,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
-enum class ScanMode {
-    DUPLICATE,
-    SIMILAR
-}
-
-enum class MatchType {
-    EXACT,
-    SIMILAR
-}
-
 data class ImageFile(
     val mediaId: Long,
     val contentUri: Uri,
@@ -40,8 +30,7 @@ data class ImageFile(
 )
 
 data class ImageDuplicateGroup(
-    val images: List<ImageFile>,
-    val matchType: MatchType
+    val images: List<ImageFile>
 )
 
 @HiltViewModel
@@ -54,24 +43,19 @@ class ImageScannerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    fun startDuplicateScan() {
-        runScan(ScanMode.DUPLICATE, clearFingerprints = false)
-    }
-
     fun startSimilarScan() {
-        runScan(ScanMode.SIMILAR, clearFingerprints = false)
+        runScan(clearFingerprints = false)
     }
 
     fun regenerateFingerprintsAndScan() {
-        val lastMode = _uiState.value.scanMode ?: return
-        runScan(lastMode, clearFingerprints = true)
+        if (_uiState.value.isScanning) return
+        runScan(clearFingerprints = true)
     }
 
-    private fun runScan(mode: ScanMode, clearFingerprints: Boolean) {
+    private fun runScan(clearFingerprints: Boolean) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isScanning = true,
-                scanMode = mode,
                 duplicateGroups = emptyList(),
                 totalImages = 0,
                 scannedCount = 0,
@@ -86,20 +70,12 @@ class ImageScannerViewModel @Inject constructor(
             val allImages = getAllImages()
             _uiState.value = _uiState.value.copy(totalImages = allImages.size)
 
-            val groups = when (mode) {
-                ScanMode.DUPLICATE -> imageScanner.findDuplicateImages(
-                    images = allImages,
-                    onProgress = { scanned ->
-                        _uiState.value = _uiState.value.copy(scannedCount = scanned)
-                    }
-                )
-                ScanMode.SIMILAR -> imageScanner.findSimilarImages(
-                    images = allImages,
-                    onProgress = { scanned ->
-                        _uiState.value = _uiState.value.copy(scannedCount = scanned)
-                    }
-                )
-            }
+            val groups = imageScanner.findSimilarImages(
+                images = allImages,
+                onProgress = { scanned ->
+                    _uiState.value = _uiState.value.copy(scannedCount = scanned)
+                }
+            )
 
             val totalDuplicates = groups.sumOf { it.images.size } - groups.size
 
@@ -197,7 +173,7 @@ class ImageScannerViewModel @Inject constructor(
 
         val updatedGroups = _uiState.value.duplicateGroups.mapNotNull { group ->
             val remaining = group.images.filter { it.mediaId !in deletedIds }
-            if (remaining.size >= 2) ImageDuplicateGroup(remaining, group.matchType) else null
+            if (remaining.size >= 2) ImageDuplicateGroup(remaining) else null
         }
         val totalDuplicates = updatedGroups.sumOf { it.images.size } - updatedGroups.size
         _uiState.value = _uiState.value.copy(
@@ -210,7 +186,6 @@ class ImageScannerViewModel @Inject constructor(
 
     data class UiState(
         val isScanning: Boolean = false,
-        val scanMode: ScanMode? = null,
         val totalImages: Int = 0,
         val scannedCount: Int = 0,
         val totalDuplicates: Int = 0,

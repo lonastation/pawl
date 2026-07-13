@@ -66,7 +66,6 @@ fun ImageScannerScreen(
     modifier: Modifier = Modifier,
     uiState: ImageScannerViewModel.UiState,
     listState: LazyListState = rememberLazyListState(),
-    onFindDuplicatesClick: () -> Unit,
     onFindSimilarClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
     onImageClick: (ImageFile) -> Unit = {},
@@ -108,35 +107,6 @@ fun ImageScannerScreen(
                     .padding(top = 16.dp)
             ) {
                 Button(
-                    onClick = onFindDuplicatesClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = !isScanning,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.tertiary,
-                        disabledContentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                ) {
-                    if (isScanning && uiState.scanMode == ScanMode.DUPLICATE) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scanning... ${uiState.scannedCount}/${uiState.totalImages}")
-                    } else {
-                        Text("Find Duplicates", fontSize = 18.sp)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
                     onClick = onFindSimilarClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,7 +120,7 @@ fun ImageScannerScreen(
                         disabledContentColor = MaterialTheme.colorScheme.onPrimary,
                     )
                 ) {
-                    if (isScanning && uiState.scanMode == ScanMode.SIMILAR) {
+                    if (isScanning) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = MaterialTheme.colorScheme.onPrimary,
@@ -257,10 +227,7 @@ fun ImageDuplicateGroupCard(
     onToggleSelection: (Long) -> Unit = {},
     onImageClick: (ImageFile) -> Unit = {}
 ) {
-    val groupLabel = when (group.matchType) {
-        MatchType.EXACT -> "Exact Duplicate"
-        MatchType.SIMILAR -> "Similar"
-    }
+    val groupLabel = "Similar"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -395,8 +362,7 @@ private val previewImageGroup = ImageDuplicateGroup(
             width = 4032,
             height = 3024
         )
-    ),
-    matchType = MatchType.EXACT
+    )
 )
 
 @Preview(showBackground = true, heightDp = 800)
@@ -407,10 +373,8 @@ private fun ImageScannerScreenPreview() {
             uiState = ImageScannerViewModel.UiState(
                 totalImages = 256,
                 totalDuplicates = 2,
-                scanMode = ScanMode.DUPLICATE,
                 duplicateGroups = listOf(previewImageGroup)
             ),
-            onFindDuplicatesClick = {},
             onFindSimilarClick = {}
         )
     }
@@ -423,11 +387,9 @@ private fun ImageScannerScreenScanningPreview() {
         ImageScannerScreen(
             uiState = ImageScannerViewModel.UiState(
                 isScanning = true,
-                scanMode = ScanMode.SIMILAR,
                 totalImages = 256,
                 scannedCount = 80
             ),
-            onFindDuplicatesClick = {},
             onFindSimilarClick = {}
         )
     }
@@ -441,11 +403,9 @@ private fun ImageScannerScreenDeletePreview() {
             uiState = ImageScannerViewModel.UiState(
                 totalImages = 256,
                 totalDuplicates = 2,
-                scanMode = ScanMode.DUPLICATE,
                 duplicateGroups = listOf(previewImageGroup),
                 selectedImageIds = setOf(2L)
             ),
-            onFindDuplicatesClick = {},
             onFindSimilarClick = {}
         )
     }

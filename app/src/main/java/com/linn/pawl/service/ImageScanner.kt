@@ -7,7 +7,6 @@ import com.linn.pawl.data.model.ImageSignature
 import com.linn.pawl.data.repository.ImageSignatureRepository
 import com.linn.pawl.ui.image.ImageDuplicateGroup
 import com.linn.pawl.ui.image.ImageFile
-import com.linn.pawl.ui.image.MatchType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
@@ -19,32 +18,6 @@ class ImageScanner @Inject constructor(
 ) {
 
     private val maxHammingDistance = 10
-
-    suspend fun findDuplicateImages(
-        images: List<ImageFile>,
-        onProgress: (Int) -> Unit
-    ): List<ImageDuplicateGroup> = withContext(Dispatchers.IO) {
-        if (images.isEmpty()) return@withContext emptyList()
-
-        signatureRepository.deleteStale(images.map { it.path })
-        val signatureCache = loadOrComputeSignatures(images, onProgress)
-
-        val md5Buckets = signatureCache.entries
-            .filter { it.value.md5.isNotEmpty() }
-            .groupBy { it.value.md5 }
-
-        val imageByPath = images.associateBy { it.path }
-        md5Buckets.values
-            .filter { it.size >= 2 }
-            .mapNotNull { entries ->
-                val groupImages = entries.mapNotNull { (path, _) -> imageByPath[path] }
-                if (groupImages.size >= 2) {
-                    ImageDuplicateGroup(groupImages, MatchType.EXACT)
-                } else {
-                    null
-                }
-            }
-    }
 
     suspend fun findSimilarImages(
         images: List<ImageFile>,
@@ -108,7 +81,7 @@ class ImageScanner @Inject constructor(
             }
 
             if (similar.size > 1) {
-                groups.add(ImageDuplicateGroup(similar, MatchType.SIMILAR))
+                groups.add(ImageDuplicateGroup(similar))
             }
             processed.add(path1)
         }

@@ -36,7 +36,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.linn.pawl.ui.image.ImageDetailScreen
 import com.linn.pawl.ui.image.ImageScannerScreen
 import com.linn.pawl.ui.image.ImageScannerViewModel
-import com.linn.pawl.ui.image.ScanMode
 import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.settings.SettingsScreen
 import com.linn.pawl.ui.settings.SettingsViewModel
@@ -74,19 +73,17 @@ fun PawlApp(
         }
     }
 
-    var pendingImageScanMode by remember { mutableStateOf<ScanMode?>(null) }
+    var pendingImageScan by remember { mutableStateOf(false) }
 
     val imagePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions.values.all { it }) {
-            when (pendingImageScanMode) {
-                ScanMode.DUPLICATE -> imageViewModel.startDuplicateScan()
-                ScanMode.SIMILAR -> imageViewModel.startSimilarScan()
-                null -> {}
+            if (pendingImageScan) {
+                imageViewModel.startSimilarScan()
             }
         }
-        pendingImageScanMode = null
+        pendingImageScan = false
     }
 
     val regenerateImagePermissionLauncher = rememberLauncherForActivityResult(
@@ -151,8 +148,8 @@ fun PawlApp(
         regenerateImagePermissionLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES))
     }
 
-    val requestImageScan: (ScanMode) -> Unit = { mode ->
-        pendingImageScanMode = mode
+    val requestImageScan: () -> Unit = {
+        pendingImageScan = true
         imagePermissionLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES))
     }
 
@@ -231,8 +228,7 @@ fun PawlApp(
                     modifier = Modifier.padding(innerPadding),
                     uiState = imageUiState,
                     listState = imageListState,
-                    onFindDuplicatesClick = { requestImageScan(ScanMode.DUPLICATE) },
-                    onFindSimilarClick = { requestImageScan(ScanMode.SIMILAR) },
+                    onFindSimilarClick = requestImageScan,
                     onToggleSelection = imageViewModel::toggleImageSelection,
                     onImageClick = { image -> selectedImageId = image.mediaId },
                     onDeleteSelected = {
