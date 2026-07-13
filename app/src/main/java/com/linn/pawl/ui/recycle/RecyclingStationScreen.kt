@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -76,9 +77,10 @@ fun RecyclingStationScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Recycling Station",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "VM-LIKE",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.offset(y = 8.dp)
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
