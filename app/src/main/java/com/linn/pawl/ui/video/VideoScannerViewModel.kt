@@ -171,10 +171,6 @@ class VideoScannerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedVideoIds = updated)
     }
 
-    fun getSelectedVideoUris(): List<Uri> {
-        return getSelectedVideos().map { it.contentUri }
-    }
-
     fun getSelectedVideos(): List<VideoFile> {
         val selected = _uiState.value.selectedVideoIds
         return _uiState.value.duplicateGroups

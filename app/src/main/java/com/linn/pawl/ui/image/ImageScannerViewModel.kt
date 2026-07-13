@@ -194,10 +194,6 @@ class ImageScannerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedImageIds = updated)
     }
 
-    fun getSelectedImageUris(): List<Uri> {
-        return getSelectedImages().map { it.contentUri }
-    }
-
     fun getSelectedImages(): List<ImageFile> {
         val selected = _uiState.value.selectedImageIds
         return _uiState.value.duplicateGroups

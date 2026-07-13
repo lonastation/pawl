@@ -49,10 +49,6 @@ class RecycledMediaRepository @Inject constructor(
         dao.getAll()
     }
 
-    suspend fun getCount(): Int = withContext(Dispatchers.IO) {
-        dao.count()
-    }
-
     suspend fun stage(candidates: List<RecycleCandidate>): List<StagedRecycleItem> =
         withContext(Dispatchers.IO) {
             val staged = mutableListOf<StagedRecycleItem>()
