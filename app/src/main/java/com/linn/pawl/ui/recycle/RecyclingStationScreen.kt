@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -30,8 +28,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -65,7 +61,6 @@ import java.io.File
 fun RecyclingStationScreen(
     uiState: RecyclingStationViewModel.UiState,
     trashFilePath: (RecycledMediaEntity) -> String,
-    onBack: () -> Unit,
     onFilterChange: (RecycleFilter) -> Unit,
     onToggleSelection: (String) -> Unit,
     onRestoreSelected: () -> Unit,
@@ -86,18 +81,9 @@ fun RecyclingStationScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 windowInsets = WindowInsets(top = 18.dp)
             )
@@ -443,7 +429,6 @@ private fun RecyclingStationScreenPreview() {
                 selectedIds = setOf("img-2")
             ),
             trashFilePath = { "" },
-            onBack = {},
             onFilterChange = {},
             onToggleSelection = {},
             onRestoreSelected = {},
@@ -459,7 +444,6 @@ private fun RecyclingStationScreenEmptyPreview() {
         RecyclingStationScreen(
             uiState = RecyclingStationViewModel.UiState(),
             trashFilePath = { "" },
-            onBack = {},
             onFilterChange = {},
             onToggleSelection = {},
             onRestoreSelected = {},

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -133,7 +134,6 @@ fun PawlApp(
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     var selectedImageId by remember { mutableLongStateOf(-1L) }
-    var showRecyclingStation by rememberSaveable { mutableStateOf(false) }
     val videoListState = rememberLazyListState()
     val imageListState = rememberLazyListState()
 
@@ -143,8 +143,8 @@ fun PawlApp(
         }
     }
 
-    LaunchedEffect(showRecyclingStation) {
-        if (showRecyclingStation) {
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == AppTab.Recycle) {
             recyclingStationViewModel.load()
         }
     }
@@ -190,23 +190,6 @@ fun PawlApp(
             image = selectedImage,
             onBack = { selectedImageId = -1L }
         )
-    } else if (showRecyclingStation) {
-        BackHandler {
-            showRecyclingStation = false
-            settingsViewModel.refreshCounts()
-        }
-        RecyclingStationScreen(
-            uiState = recycleUiState,
-            trashFilePath = recyclingStationViewModel::trashFilePath,
-            onBack = {
-                showRecyclingStation = false
-                settingsViewModel.refreshCounts()
-            },
-            onFilterChange = recyclingStationViewModel::setFilter,
-            onToggleSelection = recyclingStationViewModel::toggleSelection,
-            onRestoreSelected = recyclingStationViewModel::restoreSelected,
-            onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected
-        )
     } else {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -232,6 +215,13 @@ fun PawlApp(
                         onClick = { selectedTab = AppTab.Image },
                         icon = { Icon(Icons.Default.Image, contentDescription = "Image") },
                         label = { Text("Image") },
+                        colors = navItemColors,
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == AppTab.Recycle,
+                        onClick = { selectedTab = AppTab.Recycle },
+                        icon = { Icon(Icons.Default.Recycling, contentDescription = "Recycle") },
+                        label = { Text("Recycle") },
                         colors = navItemColors,
                     )
                     NavigationBarItem(
@@ -307,6 +297,15 @@ fun PawlApp(
                         }
                     }
                 )
+                AppTab.Recycle -> RecyclingStationScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    uiState = recycleUiState,
+                    trashFilePath = recyclingStationViewModel::trashFilePath,
+                    onFilterChange = recyclingStationViewModel::setFilter,
+                    onToggleSelection = recyclingStationViewModel::toggleSelection,
+                    onRestoreSelected = recyclingStationViewModel::restoreSelected,
+                    onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected
+                )
                 AppTab.Settings -> SettingsScreen(
                     modifier = Modifier.padding(innerPadding),
                     isVideoScanning = videoUiState.isScanning,
@@ -318,9 +317,7 @@ fun PawlApp(
                     onRegenerateImageClick = onRegenerateImageClick,
                     imageFingerprintCount = settingsUiState.imageFingerprintCount,
                     imageIgnoredGroupCount = settingsUiState.imageIgnoredGroupCount,
-                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups,
-                    recycledCount = settingsUiState.recycledCount,
-                    onOpenRecyclingStation = { showRecyclingStation = true }
+                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups
                 )
             }
         }
