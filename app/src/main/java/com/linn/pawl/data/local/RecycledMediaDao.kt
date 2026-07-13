@@ -20,6 +20,9 @@ interface RecycledMediaDao {
     @Query("SELECT * FROM recycled_media WHERE id IN (:ids)")
     suspend fun getByIds(ids: List<String>): List<RecycledMediaEntity>
 
+    @Query("SELECT * FROM recycled_media WHERE recycledAt < :cutoffMillis")
+    suspend fun getOlderThan(cutoffMillis: Long): List<RecycledMediaEntity>
+
     @Query("DELETE FROM recycled_media WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<String>)
 

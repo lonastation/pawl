@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -110,6 +111,20 @@ class RecycledMediaRepository @Inject constructor(
             File(trashDir, entity.trashFileName).delete()
         }
         deleteEntities(entities.map { it.id })
+    }
+
+    /** Permanently removes recycled items older than [retentionMillis]. */
+    suspend fun purgeExpired(
+        nowMillis: Long = System.currentTimeMillis(),
+        retentionMillis: Long = RETENTION_MILLIS
+    ): Int = withContext(Dispatchers.IO) {
+        val expired = dao.getOlderThan(nowMillis - retentionMillis)
+        if (expired.isEmpty()) return@withContext 0
+        expired.forEach { entity ->
+            File(trashDir, entity.trashFileName).delete()
+        }
+        deleteEntities(expired.map { it.id })
+        expired.size
     }
 
     fun trashFileFor(entity: RecycledMediaEntity): File =
@@ -210,6 +225,8 @@ class RecycledMediaRepository @Inject constructor(
     companion object {
         private const val TRASH_DIR_NAME = "recycle_bin"
         private const val SQLITE_BIND_ARG_LIMIT = 500
+        private const val RETENTION_DAYS = 3L
+        val RETENTION_MILLIS: Long = TimeUnit.DAYS.toMillis(RETENTION_DAYS)
 
         fun relativePathFromAbsolute(path: String, mediaType: String): String {
             val normalized = path.replace('\\', '/')
