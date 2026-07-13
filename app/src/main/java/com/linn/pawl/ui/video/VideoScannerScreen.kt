@@ -246,20 +246,13 @@ fun VideoDuplicateGroupCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Duplicate Group",
+                    text = "Duplicate Group(${group.videos.size})",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${group.videos.size}",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    TextButton(onClick = onIgnoreGroup) {
-                        Text("Ignore")
-                    }
+                TextButton(onClick = onIgnoreGroup) {
+                    Text("Ignore")
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
