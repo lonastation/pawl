@@ -26,8 +26,14 @@ data class ImageFile(
     val width: Int = 0,
     val height: Int = 0,
     val dateCreated: Long = 0L,
-    val lastModified: Long = 0L
-)
+    val lastModified: Long = 0L,
+    val mimeType: String = ""
+) {
+    val isGif: Boolean
+        get() = mimeType.equals("image/gif", ignoreCase = true) ||
+            name.endsWith(".gif", ignoreCase = true) ||
+            path.endsWith(".gif", ignoreCase = true)
+}
 
 data class ImageDuplicateGroup(
     val images: List<ImageFile>
@@ -97,7 +103,8 @@ class ImageScannerViewModel @Inject constructor(
             MediaStore.Images.Media.WIDTH,
             MediaStore.Images.Media.HEIGHT,
             MediaStore.Images.Media.DATE_ADDED,
-            MediaStore.Images.Media.DATE_MODIFIED
+            MediaStore.Images.Media.DATE_MODIFIED,
+            MediaStore.Images.Media.MIME_TYPE
         )
 
         val cursor = context.contentResolver.query(
@@ -117,6 +124,7 @@ class ImageScannerViewModel @Inject constructor(
             val heightColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.HEIGHT)
             val dateAddedColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
             val dateModifiedColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+            val mimeTypeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
 
             while (it.moveToNext()) {
                 val path = it.getString(dataColumn) ?: continue
@@ -137,7 +145,8 @@ class ImageScannerViewModel @Inject constructor(
                             width = it.getInt(widthColumn),
                             height = it.getInt(heightColumn),
                             dateCreated = it.getLong(dateAddedColumn) * 1000L,
-                            lastModified = maxOf(file.lastModified(), mediaStoreModified)
+                            lastModified = maxOf(file.lastModified(), mediaStoreModified),
+                            mimeType = it.getString(mimeTypeColumn).orEmpty()
                         )
                     )
                 }

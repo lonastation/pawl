@@ -1,9 +1,10 @@
 package com.linn.pawl.ui.image
 
-import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.util.Size
-import androidx.compose.foundation.Image
+import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,13 +27,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatAspectRatio
@@ -48,6 +49,7 @@ import com.linn.pawl.ui.util.formatFileSize
 import com.linn.pawl.ui.util.formatPathForDisplay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,22 +153,47 @@ private fun ImagePreview(
     }
 
     val context = LocalContext.current
-    val bitmap by produceState<Bitmap?>(initialValue = null, contentUri) {
+    val drawable by produceState<Drawable?>(initialValue = null, contentUri) {
         value = withContext(Dispatchers.IO) {
             try {
-                context.contentResolver.loadThumbnail(contentUri, Size(1024, 1024), null)
+                val source = ImageDecoder.createSource(context.contentResolver, contentUri)
+                ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
+                    val maxSide = 2048
+                    val width = info.size.width
+                    val height = info.size.height
+                    val longest = max(width, height)
+                    if (longest > maxSide) {
+                        val scale = maxSide.toFloat() / longest
+                        decoder.setTargetSize(
+                            (width * scale).toInt().coerceAtLeast(1),
+                            (height * scale).toInt().coerceAtLeast(1)
+                        )
+                    }
+                }
             } catch (_: Exception) {
                 null
             }
         }
     }
 
-    if (bitmap != null) {
-        Image(
-            bitmap = bitmap!!.asImageBitmap(),
-            contentDescription = null,
-            modifier = modifier,
-            contentScale = ContentScale.Fit
+    DisposableEffect(drawable) {
+        val animatable = drawable as? Animatable
+        animatable?.start()
+        onDispose { animatable?.stop() }
+    }
+
+    if (drawable != null) {
+        AndroidView(
+            factory = { ctx ->
+                ImageView(ctx).apply {
+                    adjustViewBounds = true
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                }
+            },
+            update = { imageView ->
+                imageView.setImageDrawable(drawable)
+            },
+            modifier = modifier.background(MaterialTheme.colorScheme.surface)
         )
     } else {
         Box(

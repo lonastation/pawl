@@ -36,7 +36,22 @@ class ImageScanner @Inject constructor(
 
         if (signatureCache.size < 2) return@withContext emptyList()
 
-        findVisualSimilarGroups(signatureCache, images.associateBy { it.path })
+        // GIFs only match GIFs; static images only match static images.
+        // GIF fingerprints use the first frame (BitmapFactory.decodeFile).
+        val (gifs, staticImages) = images.partition { it.isGif }
+        val imageByPath = images.associateBy { it.path }
+
+        findVisualSimilarGroups(signaturesFor(gifs, signatureCache), imageByPath) +
+            findVisualSimilarGroups(signaturesFor(staticImages, signatureCache), imageByPath)
+    }
+
+    private fun signaturesFor(
+        images: List<ImageFile>,
+        signatureCache: Map<String, ImageSignature>
+    ): Map<String, ImageSignature> {
+        if (images.size < 2) return emptyMap()
+        val paths = images.mapTo(HashSet()) { it.path }
+        return signatureCache.filterKeys { it in paths }
     }
 
     private suspend fun loadOrComputeSignatures(
@@ -102,6 +117,7 @@ class ImageScanner @Inject constructor(
 
     private fun extractSignature(image: ImageFile): ImageSignature? {
         val md5 = computeFileMd5(image.path) ?: return null
+        // BitmapFactory decodes only the first frame for GIFs.
         val bitmap = decodeBitmap(image.path) ?: return null
 
         return try {
