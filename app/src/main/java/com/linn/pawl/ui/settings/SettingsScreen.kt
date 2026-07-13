@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.linn.pawl.ui.theme.AppBrown
 import com.linn.pawl.ui.theme.AppRed
 import com.linn.pawl.ui.theme.PawlTheme
 
@@ -78,11 +79,11 @@ fun SettingsScreen(
         ) {
             Text(
                 text = "Video",
-                fontSize = 16.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppBrown
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Cached fingerprints: $videoFingerprintCount",
                 fontSize = 14.sp,
@@ -150,11 +151,11 @@ fun SettingsScreen(
 
             Text(
                 text = "Image",
-                fontSize = 16.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppBrown
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Cached fingerprints: $imageFingerprintCount",
                 fontSize = 14.sp,
