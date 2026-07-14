@@ -270,6 +270,7 @@ fun RecyclingStationScreen(
                         shape = MaterialTheme.shapes.medium,
                         enabled = !uiState.isBusy,
                         colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = AppWhite,
                             contentColor = AppBrown
                         ),
                         border = BorderStroke(1.dp, AppBrown)
@@ -474,14 +475,34 @@ private val previewRecycledItems = listOf(
     )
 )
 
-@Preview(showBackground = true, heightDp = 800)
+@Preview(showBackground = true, heightDp = 800, name = "Without All Files Access")
 @Composable
 private fun RecyclingStationScreenPreview() {
     PawlTheme {
         RecyclingStationScreen(
             uiState = RecyclingStationViewModel.UiState(
                 items = previewRecycledItems,
-                selectedIds = setOf("img-2")
+                selectedIds = setOf("img-2"),
+                hasAllFilesAccess = false
+            ),
+            trashFilePath = { "" },
+            onFilterChange = {},
+            onToggleSelection = {},
+            onRestoreSelected = {},
+            onPermanentlyDeleteSelected = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "With All Files Access")
+@Composable
+private fun RecyclingStationScreenWithAllFilesAccessPreview() {
+    PawlTheme {
+        RecyclingStationScreen(
+            uiState = RecyclingStationViewModel.UiState(
+                items = previewRecycledItems,
+                selectedIds = setOf("img-2"),
+                hasAllFilesAccess = true
             ),
             trashFilePath = { "" },
             onFilterChange = {},
