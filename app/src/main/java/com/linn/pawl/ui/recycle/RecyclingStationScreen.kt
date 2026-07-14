@@ -182,7 +182,7 @@ fun RecyclingStationScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 when {
                     uiState.isLoading -> {
@@ -210,6 +210,7 @@ fun RecyclingStationScreen(
                     else -> {
                         LazyColumn(
                             contentPadding = PaddingValues(
+                                top = 4.dp,
                                 bottom = if (showActions) 88.dp else 16.dp
                             ),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
