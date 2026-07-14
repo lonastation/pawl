@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.ThumbnailUtils
 import android.util.Size
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -50,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.linn.pawl.data.local.RecycledMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
+import com.linn.pawl.ui.theme.AppBrown
+import com.linn.pawl.ui.theme.AppLightBrown
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatFileSize
@@ -105,20 +109,46 @@ fun RecyclingStationScreen(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val filterChipColors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = AppBrown,
+                        selectedLabelColor = AppWhite,
+                        labelColor = AppBrown,
+                    )
                     FilterChip(
                         selected = uiState.filter == RecycleFilter.All,
                         onClick = { onFilterChange(RecycleFilter.All) },
-                        label = { Text("All") }
+                        label = { Text("All") },
+                        colors = filterChipColors,
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = uiState.filter == RecycleFilter.All,
+                            borderColor = AppLightBrown,
+                            selectedBorderColor = AppBrown,
+                        )
                     )
                     FilterChip(
                         selected = uiState.filter == RecycleFilter.Images,
                         onClick = { onFilterChange(RecycleFilter.Images) },
-                        label = { Text("Images") }
+                        label = { Text("Images") },
+                        colors = filterChipColors,
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = uiState.filter == RecycleFilter.Images,
+                            borderColor = AppLightBrown,
+                            selectedBorderColor = AppBrown,
+                        )
                     )
                     FilterChip(
                         selected = uiState.filter == RecycleFilter.Videos,
                         onClick = { onFilterChange(RecycleFilter.Videos) },
-                        label = { Text("Videos") }
+                        label = { Text("Videos") },
+                        colors = filterChipColors,
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = uiState.filter == RecycleFilter.Videos,
+                            borderColor = AppLightBrown,
+                            selectedBorderColor = AppBrown,
+                        )
                     )
                 }
 
@@ -219,7 +249,11 @@ fun RecyclingStationScreen(
                             .weight(1f)
                             .height(56.dp),
                         shape = MaterialTheme.shapes.medium,
-                        enabled = !uiState.isBusy
+                        enabled = !uiState.isBusy,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = AppBrown
+                        ),
+                        border = BorderStroke(1.dp, AppBrown)
                     ) {
                         Text("Restore (${uiState.selectedIds.size})", fontSize = 16.sp)
                     }
