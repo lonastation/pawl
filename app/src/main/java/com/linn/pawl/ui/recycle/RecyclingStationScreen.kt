@@ -64,14 +64,14 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecyclingStationScreen(
+    modifier: Modifier = Modifier,
     uiState: RecyclingStationViewModel.UiState,
     trashFilePath: (RecycledMediaEntity) -> String,
     onFilterChange: (RecycleFilter) -> Unit,
     onToggleSelection: (String) -> Unit,
     onRestoreSelected: () -> Unit,
     onPermanentlyDeleteSelected: () -> Unit,
-    onRequestAllFilesAccess: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onRequestAllFilesAccess: () -> Unit = {}
 ) {
     val showActions = uiState.selectedIds.isNotEmpty() && !uiState.isBusy
 
