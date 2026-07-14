@@ -42,7 +42,9 @@ fun SettingsScreen(
     onRegenerateImageClick: () -> Unit,
     imageFingerprintCount: Int,
     imageIgnoredGroupCount: Int,
-    onClearIgnoredImageGroups: () -> Unit
+    onClearIgnoredImageGroups: () -> Unit,
+    hasAllFilesAccess: Boolean = false,
+    onRequestAllFilesAccess: () -> Unit = {}
 ) {
     Scaffold(
         modifier = modifier,
@@ -218,6 +220,50 @@ fun SettingsScreen(
             ) {
                 Text("Clear Ignored Image Groups", fontSize = 16.sp)
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Storage",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppBrown
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = if (hasAllFilesAccess) {
+                    "All files access: granted"
+                } else {
+                    "All files access: not granted"
+                },
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (hasAllFilesAccess) {
+                    "Recycled files can restore to their original folders."
+                } else {
+                    "Without this, restore is limited to DCIM/Pictures/Movies."
+                },
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!hasAllFilesAccess) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onRequestAllFilesAccess,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = regenerateButtonColors,
+                    border = BorderStroke(1.dp, AppRed),
+                ) {
+                    Text("Grant All Files Access", fontSize = 16.sp)
+                }
+            }
         }
     }
 }
@@ -236,7 +282,9 @@ private fun SettingsScreenPreview() {
             onRegenerateImageClick = {},
             imageFingerprintCount = 128,
             imageIgnoredGroupCount = 5,
-            onClearIgnoredImageGroups = {}
+            onClearIgnoredImageGroups = {},
+            hasAllFilesAccess = false,
+            onRequestAllFilesAccess = {}
         )
     }
 }
@@ -255,7 +303,9 @@ private fun SettingsScreenScanningPreview() {
             onRegenerateImageClick = {},
             imageFingerprintCount = 128,
             imageIgnoredGroupCount = 0,
-            onClearIgnoredImageGroups = {}
+            onClearIgnoredImageGroups = {},
+            hasAllFilesAccess = true,
+            onRequestAllFilesAccess = {}
         )
     }
 }

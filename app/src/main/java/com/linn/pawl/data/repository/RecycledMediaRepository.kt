@@ -2,7 +2,9 @@ package com.linn.pawl.data.repository
 
 import android.content.ContentValues
 import android.content.Context
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
 import com.linn.pawl.data.local.RecycledMediaDao
@@ -44,6 +46,8 @@ class RecycledMediaRepository @Inject constructor(
 
     private val trashDir: File
         get() = File(context.filesDir, TRASH_DIR_NAME).also { it.mkdirs() }
+
+    fun hasAllFilesAccess(): Boolean = Environment.isExternalStorageManager()
 
     suspend fun getAll(): List<RecycledMediaEntity> = withContext(Dispatchers.IO) {
         dao.getAll()
@@ -93,8 +97,13 @@ class RecycledMediaRepository @Inject constructor(
     suspend fun restore(ids: Collection<String>) = withContext(Dispatchers.IO) {
         if (ids.isEmpty()) return@withContext
         val entities = dao.getByIds(ids.toList())
+        val canWriteAnywhere = hasAllFilesAccess()
         entities.forEach { entity ->
-            restoreToMediaStore(entity)
+            if (canWriteAnywhere && entity.originalPath.isNotBlank()) {
+                restoreToOriginalPath(entity)
+            } else {
+                restoreToMediaStore(entity)
+            }
             File(trashDir, entity.trashFileName).delete()
         }
         deleteEntities(entities.map { it.id })
@@ -167,6 +176,30 @@ class RecycledMediaRepository @Inject constructor(
         return StagedRecycleItem(entity = entity, contentUri = contentUri)
     }
 
+    private fun restoreToOriginalPath(entity: RecycledMediaEntity) {
+        val trashFile = File(trashDir, entity.trashFileName)
+        if (!trashFile.exists()) error("Trash file missing: ${entity.displayName}")
+
+        val dest = File(entity.originalPath)
+        val parent = dest.parentFile
+            ?: error("Invalid original path: ${entity.originalPath}")
+        if (!parent.exists() && !parent.mkdirs()) {
+            error("Unable to create folder: ${parent.absolutePath}")
+        }
+
+        trashFile.inputStream().use { input ->
+            dest.outputStream().use { output -> input.copyTo(output) }
+        }
+
+        val mime = entity.mimeType.ifBlank { null }
+        MediaScannerConnection.scanFile(
+            context,
+            arrayOf(dest.absolutePath),
+            arrayOf(mime),
+            null
+        )
+    }
+
     private fun restoreToMediaStore(entity: RecycledMediaEntity) {
         val trashFile = File(trashDir, entity.trashFileName)
         if (!trashFile.exists()) error("Trash file missing: ${entity.displayName}")
@@ -181,7 +214,10 @@ class RecycledMediaRepository @Inject constructor(
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, entity.displayName)
             put(MediaStore.MediaColumns.MIME_TYPE, entity.mimeType)
-            put(MediaStore.MediaColumns.RELATIVE_PATH, entity.relativePath)
+            put(
+                MediaStore.MediaColumns.RELATIVE_PATH,
+                allowedRelativePath(entity.relativePath, entity.mediaType)
+            )
             put(MediaStore.MediaColumns.IS_PENDING, 1)
             if (entity.dateTaken > 0L) {
                 put(MediaStore.MediaColumns.DATE_TAKEN, entity.dateTaken)
@@ -224,6 +260,9 @@ class RecycledMediaRepository @Inject constructor(
         private const val RETENTION_DAYS = 3L
         val RETENTION_MILLIS: Long = TimeUnit.DAYS.toMillis(RETENTION_DAYS)
 
+        private val ALLOWED_IMAGE_DIRS = setOf("DCIM", "Pictures")
+        private val ALLOWED_VIDEO_DIRS = setOf("DCIM", "Movies", "Pictures")
+
         fun relativePathFromAbsolute(path: String, mediaType: String): String {
             val normalized = path.replace('\\', '/')
             val prefixes = listOf(
@@ -247,6 +286,18 @@ class RecycledMediaRepository @Inject constructor(
             } else {
                 "Movies/PawlRestore/"
             }
+        }
+
+        /** MediaStore only allows certain primary directories for Images/Video inserts. */
+        fun allowedRelativePath(relativePath: String, mediaType: String): String {
+            val normalized = relativePath.replace('\\', '/').trim('/')
+            val primary = normalized.substringBefore('/', missingDelimiterValue = normalized)
+            val isImage = mediaType == DuplicateGroupKey.MEDIA_IMAGE
+            val allowed = if (isImage) ALLOWED_IMAGE_DIRS else ALLOWED_VIDEO_DIRS
+            if (primary in allowed && normalized.isNotEmpty()) {
+                return "$normalized/"
+            }
+            return if (isImage) "Pictures/PawlRestore/" else "Movies/PawlRestore/"
         }
 
         fun guessMimeType(displayName: String, mediaType: String): String {

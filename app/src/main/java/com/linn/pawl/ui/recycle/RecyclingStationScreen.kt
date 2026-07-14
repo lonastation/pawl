@@ -70,6 +70,7 @@ fun RecyclingStationScreen(
     onToggleSelection: (String) -> Unit,
     onRestoreSelected: () -> Unit,
     onPermanentlyDeleteSelected: () -> Unit,
+    onRequestAllFilesAccess: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val showActions = uiState.selectedIds.isNotEmpty() && !uiState.isBusy
@@ -106,6 +107,24 @@ fun RecyclingStationScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 Spacer(modifier = Modifier.height(12.dp))
+                if (!uiState.hasAllFilesAccess) {
+                    Text(
+                        text = "All files access is off. Restore may land in Pictures/Movies instead of the original folder.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onRequestAllFilesAccess,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppBrown),
+                        border = BorderStroke(1.dp, AppBrown)
+                    ) {
+                        Text("Grant All Files Access", fontSize = 14.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {

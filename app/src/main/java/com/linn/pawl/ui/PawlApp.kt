@@ -34,7 +34,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.linn.pawl.ui.image.ImageDetailScreen
 import com.linn.pawl.ui.image.ImageScannerScreen
 import com.linn.pawl.ui.image.ImageScannerViewModel
@@ -49,6 +52,7 @@ import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.video.VideoDetailScreen
 import com.linn.pawl.ui.video.VideoScannerScreen
 import com.linn.pawl.ui.video.VideoScannerViewModel
+import com.linn.pawl.util.openManageAllFilesAccessSettings
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +70,14 @@ fun PawlApp(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            settingsViewModel.refreshAllFilesAccess()
+            recyclingStationViewModel.refreshAllFilesAccess()
+        }
+    }
 
     var pendingVideoDeleteIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var pendingImageDeleteIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
@@ -304,7 +316,8 @@ fun PawlApp(
                     onFilterChange = recyclingStationViewModel::setFilter,
                     onToggleSelection = recyclingStationViewModel::toggleSelection,
                     onRestoreSelected = recyclingStationViewModel::restoreSelected,
-                    onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected
+                    onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected,
+                    onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) }
                 )
                 AppTab.Settings -> SettingsScreen(
                     modifier = Modifier.padding(innerPadding),
@@ -317,7 +330,9 @@ fun PawlApp(
                     onRegenerateImageClick = onRegenerateImageClick,
                     imageFingerprintCount = settingsUiState.imageFingerprintCount,
                     imageIgnoredGroupCount = settingsUiState.imageIgnoredGroupCount,
-                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups
+                    onClearIgnoredImageGroups = settingsViewModel::clearIgnoredImageGroups,
+                    hasAllFilesAccess = settingsUiState.hasAllFilesAccess,
+                    onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) }
                 )
             }
         }

@@ -40,15 +40,23 @@ class RecyclingStationViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     items = items,
-                    selectedIds = _uiState.value.selectedIds.intersect(items.map { it.id }.toSet())
+                    selectedIds = _uiState.value.selectedIds.intersect(items.map { it.id }.toSet()),
+                    hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Failed to load recycling station"
+                    errorMessage = e.message ?: "Failed to load recycling station",
+                    hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
                 )
             }
         }
+    }
+
+    fun refreshAllFilesAccess() {
+        _uiState.value = _uiState.value.copy(
+            hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
+        )
     }
 
     fun setFilter(filter: RecycleFilter) {
@@ -167,7 +175,8 @@ class RecyclingStationViewModel @Inject constructor(
         val items: List<RecycledMediaEntity> = emptyList(),
         val filter: RecycleFilter = RecycleFilter.All,
         val selectedIds: Set<String> = emptySet(),
-        val errorMessage: String? = null
+        val errorMessage: String? = null,
+        val hasAllFilesAccess: Boolean = false
     ) {
         val images: List<RecycledMediaEntity>
             get() = items.filter { it.mediaType == DuplicateGroupKey.MEDIA_IMAGE }
