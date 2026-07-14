@@ -116,12 +116,14 @@ fun RecyclingStationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = onRequestAllFilesAccess,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
                         shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AppBrown),
                         border = BorderStroke(1.dp, AppBrown)
                     ) {
-                        Text("Grant All Files Access", fontSize = 14.sp)
+                        Text("Grant All Files Access", fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -472,6 +474,22 @@ private val previewRecycledItems = listOf(
         trashFileName = "vid-1.mp4",
         dateTaken = 1_700_000_200_000L,
         recycledAt = 1_710_000_200_000L
+    ),
+    RecycledMediaEntity(
+        id = "vid-2",
+        mediaType = DuplicateGroupKey.MEDIA_VIDEO,
+        originalMediaId = 4L,
+        displayName = "clip2.mp4",
+        mimeType = "video/mp4",
+        sizeBytes = 18_000_000L,
+        width = 1920,
+        height = 1080,
+        durationMs = 12_500L,
+        originalPath = "/storage/emulated/0/DCIM/Camera/clip2.mp4",
+        relativePath = "DCIM/Camera/",
+        trashFileName = "vid-2.mp4",
+        dateTaken = 1_700_000_200_000L,
+        recycledAt = 1_710_000_200_000L
     )
 )
 
@@ -501,6 +519,26 @@ private fun RecyclingStationScreenWithAllFilesAccessPreview() {
         RecyclingStationScreen(
             uiState = RecyclingStationViewModel.UiState(
                 items = previewRecycledItems,
+                selectedIds = setOf("img-2"),
+                hasAllFilesAccess = true
+            ),
+            trashFilePath = { "" },
+            onFilterChange = {},
+            onToggleSelection = {},
+            onRestoreSelected = {},
+            onPermanentlyDeleteSelected = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "Images Filter")
+@Composable
+private fun RecyclingStationScreenImagesPreview() {
+    PawlTheme {
+        RecyclingStationScreen(
+            uiState = RecyclingStationViewModel.UiState(
+                items = previewRecycledItems,
+                filter = RecycleFilter.Images,
                 selectedIds = setOf("img-2"),
                 hasAllFilesAccess = true
             ),
