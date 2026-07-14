@@ -95,7 +95,10 @@ fun ImageScannerScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
+                    IconButton(
+                        onClick = onOpenDrawer,
+                        modifier = Modifier.offset(y = 8.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
                             contentDescription = "Open navigation drawer"
