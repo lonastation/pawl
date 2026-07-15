@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,10 +52,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -269,10 +274,19 @@ fun PawlApp(
             onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) }
         )
     } else {
+        val drawerWidth = with(LocalDensity.current) {
+            (LocalWindowInfo.current.containerSize.width * 0.78f).toDp()
+        }.coerceAtMost(320.dp)
+        val drawerContentBlur by animateDpAsState(
+            targetValue = if (drawerState.targetValue == DrawerValue.Open) 10.dp else 0.dp,
+            label = "drawerContentBlur",
+        )
         ModalNavigationDrawer(
             drawerState = drawerState,
+            scrimColor = Color.Black.copy(alpha = 0.35f),
             drawerContent = {
                 AppNavigationDrawerContent(
+                    modifier = Modifier.width(drawerWidth),
                     recentlyDeletedSelected = selectedTab == AppTab.Recycle && !settingsHighlightedInDrawer,
                     settingsSelected = settingsHighlightedInDrawer,
                     onRecentlyDeletedClick = {
@@ -293,6 +307,7 @@ fun PawlApp(
             }
         ) {
             Scaffold(
+                modifier = Modifier.blur(drawerContentBlur),
                 containerColor = MaterialTheme.colorScheme.background,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 bottomBar = {
@@ -410,8 +425,10 @@ private fun AppNavigationDrawerContent(
     settingsSelected: Boolean,
     onRecentlyDeletedClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     ModalDrawerSheet(
+        modifier = modifier,
         drawerContainerColor = AppBrown,
         drawerTonalElevation = 0.dp,
     ) {
