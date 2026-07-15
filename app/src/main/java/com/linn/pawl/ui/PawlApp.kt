@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -257,7 +258,14 @@ fun PawlApp(
             drawerState = drawerState,
             drawerContent = {
                 AppNavigationDrawerContent(
+                    recentlyDeletedSelected = selectedTab == AppTab.Recycle,
                     settingsSelected = false,
+                    onRecentlyDeletedClick = {
+                        scope.launch {
+                            drawerState.close()
+                            selectedTab = AppTab.Recycle
+                        }
+                    },
                     onSettingsClick = {
                         scope.launch {
                             drawerState.close()
@@ -291,13 +299,6 @@ fun PawlApp(
                             onClick = { selectedTab = AppTab.Image },
                             icon = { Icon(Icons.Default.Image, contentDescription = "Image") },
                             label = { Text("Image") },
-                            colors = navItemColors,
-                        )
-                        NavigationBarItem(
-                            selected = selectedTab == AppTab.Recycle,
-                            onClick = { selectedTab = AppTab.Recycle },
-                            icon = { Icon(Icons.Default.Recycling, contentDescription = "Recycle") },
-                            label = { Text("Recycle") },
                             colors = navItemColors,
                         )
                     }
@@ -388,7 +389,9 @@ fun PawlApp(
 
 @Composable
 private fun AppNavigationDrawerContent(
+    recentlyDeletedSelected: Boolean,
     settingsSelected: Boolean,
+    onRecentlyDeletedClick: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
     ModalDrawerSheet(
@@ -426,32 +429,53 @@ private fun AppNavigationDrawerContent(
                     .background(AppWhite)
                     .padding(vertical = 16.dp),
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(if (settingsSelected) AppLightBrown else AppWhite)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onSettingsClick,
-                        )
-                        .padding(horizontal = 28.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = AppBrown,
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Settings",
-                        color = AppBrown,
-                        fontSize = 16.sp,
-                    )
-                }
+                AppNavigationDrawerItem(
+                    label = "Recently deleted",
+                    icon = Icons.Default.Recycling,
+                    selected = recentlyDeletedSelected,
+                    onClick = onRecentlyDeletedClick,
+                )
+                AppNavigationDrawerItem(
+                    label = "Settings",
+                    icon = Icons.Default.Settings,
+                    selected = settingsSelected,
+                    onClick = onSettingsClick,
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun AppNavigationDrawerItem(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (selected) AppLightBrown else AppWhite)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 28.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = AppBrown,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            color = AppBrown,
+            fontSize = 16.sp,
+        )
     }
 }
 
@@ -460,18 +484,22 @@ private fun AppNavigationDrawerContent(
 private fun AppNavigationDrawerContentPreview() {
     PawlTheme {
         AppNavigationDrawerContent(
+            recentlyDeletedSelected = false,
             settingsSelected = false,
+            onRecentlyDeletedClick = {},
             onSettingsClick = {},
         )
     }
 }
 
-@Preview(showBackground = true, widthDp = 300, heightDp = 600, name = "Settings selected")
+@Preview(showBackground = true, widthDp = 300, heightDp = 600, name = "Recently deleted selected")
 @Composable
 private fun AppNavigationDrawerContentSelectedPreview() {
     PawlTheme {
         AppNavigationDrawerContent(
-            settingsSelected = true,
+            recentlyDeletedSelected = true,
+            settingsSelected = false,
+            onRecentlyDeletedClick = {},
             onSettingsClick = {},
         )
     }
