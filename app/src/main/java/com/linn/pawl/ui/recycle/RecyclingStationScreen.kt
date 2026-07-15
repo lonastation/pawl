@@ -78,7 +78,7 @@ fun RecyclingStationScreen(
     onPermanentlyDeleteSelected: () -> Unit,
     onPermanentlyDeleteAll: () -> Unit = {},
     onRequestAllFilesAccess: () -> Unit = {},
-    onOpenDrawer: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val showActions = uiState.selectedIds.isNotEmpty() && !uiState.isBusy
     val canDeleteAll = uiState.items.isNotEmpty() && !uiState.isBusy && !uiState.isLoading
@@ -98,7 +98,7 @@ fun RecyclingStationScreen(
                 },
                 navigationIcon = {
                     IconButton(
-                        onClick = onOpenDrawer,
+                        onClick = onBack,
                         modifier = Modifier.offset(y = 8.dp)
                     ) {
                         Icon(

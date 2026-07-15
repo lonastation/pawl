@@ -178,9 +178,8 @@ fun PawlApp(
     }
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
+    var lastMainTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var reopenDrawerAfterSettings by remember { mutableStateOf(false) }
-    var settingsHighlightedInDrawer by remember { mutableStateOf(false) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     var selectedImageId by remember { mutableLongStateOf(-1L) }
     val videoListState = rememberLazyListState()
@@ -189,13 +188,6 @@ fun PawlApp(
     LaunchedEffect(showSettings, videoUiState.isScanning, imageUiState.isScanning) {
         if (showSettings && !videoUiState.isScanning && !imageUiState.isScanning) {
             settingsViewModel.refreshCounts()
-        }
-    }
-
-    LaunchedEffect(reopenDrawerAfterSettings, showSettings) {
-        if (reopenDrawerAfterSettings && !showSettings) {
-            drawerState.open()
-            reopenDrawerAfterSettings = false
         }
     }
 
@@ -235,8 +227,11 @@ fun PawlApp(
     }
 
     val openDrawer: () -> Unit = {
-        settingsHighlightedInDrawer = false
         scope.launch { drawerState.open() }
+    }
+
+    val leaveRecycle: () -> Unit = {
+        selectedTab = lastMainTab
     }
 
     if (selectedVideo != null) {
@@ -252,14 +247,9 @@ fun PawlApp(
             onBack = { selectedImageId = -1L }
         )
     } else if (showSettings) {
-        val leaveSettings: () -> Unit = {
-            showSettings = false
-            settingsHighlightedInDrawer = true
-            reopenDrawerAfterSettings = true
-        }
-        BackHandler(onBack = leaveSettings)
+        BackHandler { showSettings = false }
         SettingsScreen(
-            onBack = leaveSettings,
+            onBack = { showSettings = false },
             isVideoScanning = videoUiState.isScanning,
             onRegenerateVideoClick = onRegenerateVideoClick,
             videoFingerprintCount = settingsUiState.videoFingerprintCount,
@@ -274,6 +264,9 @@ fun PawlApp(
             onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) }
         )
     } else {
+        if (selectedTab == AppTab.Recycle) {
+            BackHandler(onBack = leaveRecycle)
+        }
         val drawerWidth = with(LocalDensity.current) {
             (LocalWindowInfo.current.containerSize.width * 0.78f).toDp()
         }.coerceAtMost(320.dp)
@@ -287,17 +280,18 @@ fun PawlApp(
             drawerContent = {
                 AppNavigationDrawerContent(
                     modifier = Modifier.width(drawerWidth),
-                    recentlyDeletedSelected = selectedTab == AppTab.Recycle && !settingsHighlightedInDrawer,
-                    settingsSelected = settingsHighlightedInDrawer,
+                    recentlyDeletedSelected = selectedTab == AppTab.Recycle,
+                    settingsSelected = false,
                     onRecentlyDeletedClick = {
-                        settingsHighlightedInDrawer = false
+                        if (selectedTab == AppTab.Video || selectedTab == AppTab.Image) {
+                            lastMainTab = selectedTab
+                        }
                         scope.launch {
                             drawerState.close()
                             selectedTab = AppTab.Recycle
                         }
                     },
                     onSettingsClick = {
-                        settingsHighlightedInDrawer = false
                         scope.launch {
                             drawerState.close()
                             showSettings = true
@@ -321,14 +315,20 @@ fun PawlApp(
                     NavigationBar(containerColor = AppBrown) {
                         NavigationBarItem(
                             selected = selectedTab == AppTab.Video,
-                            onClick = { selectedTab = AppTab.Video },
+                            onClick = {
+                                selectedTab = AppTab.Video
+                                lastMainTab = AppTab.Video
+                            },
                             icon = { Icon(Icons.Default.VideoLibrary, contentDescription = "Video") },
                             label = { Text("Video") },
                             colors = navItemColors,
                         )
                         NavigationBarItem(
                             selected = selectedTab == AppTab.Image,
-                            onClick = { selectedTab = AppTab.Image },
+                            onClick = {
+                                selectedTab = AppTab.Image
+                                lastMainTab = AppTab.Image
+                            },
                             icon = { Icon(Icons.Default.Image, contentDescription = "Image") },
                             label = { Text("Image") },
                             colors = navItemColors,
@@ -411,7 +411,7 @@ fun PawlApp(
                         onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected,
                         onPermanentlyDeleteAll = recyclingStationViewModel::permanentlyDeleteAll,
                         onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) },
-                        onOpenDrawer = openDrawer,
+                        onBack = leaveRecycle,
                     )
                 }
             }
@@ -437,7 +437,7 @@ private fun AppNavigationDrawerContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppWhite)
-                    .padding(top = 32.dp, bottom = 16.dp),
+                    .padding(top = 32.dp, bottom = 26.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
@@ -448,7 +448,7 @@ private fun AppNavigationDrawerContent(
                         .size(96.dp)
                         .clip(CircleShape)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = "VM-LIKE",
                     fontSize = 16.sp,
