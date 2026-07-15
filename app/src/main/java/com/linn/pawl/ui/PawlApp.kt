@@ -7,11 +7,22 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Recycling
@@ -26,8 +37,6 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -40,15 +49,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.linn.pawl.R
 import com.linn.pawl.ui.image.ImageDetailScreen
 import com.linn.pawl.ui.image.ImageScannerScreen
 import com.linn.pawl.ui.image.ImageScannerViewModel
@@ -60,6 +75,7 @@ import com.linn.pawl.ui.settings.SettingsViewModel
 import com.linn.pawl.ui.theme.AppBrown
 import com.linn.pawl.ui.theme.AppLightBrown
 import com.linn.pawl.ui.theme.AppWhite
+import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.video.VideoDetailScreen
 import com.linn.pawl.ui.video.VideoScannerScreen
 import com.linn.pawl.ui.video.VideoScannerViewModel
@@ -240,40 +256,15 @@ fun PawlApp(
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                ModalDrawerSheet(
-                    drawerContainerColor = AppWhite,
-                ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "VM-LIKE",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    NavigationDrawerItem(
-                        label = { Text("Settings") },
-                        selected = false,
-                        onClick = {
-                            scope.launch {
-                                drawerState.close()
-                                showSettings = true
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = null
-                            )
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            unselectedIconColor = AppBrown,
-                            unselectedTextColor = AppBrown,
-                        ),
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                }
+                AppNavigationDrawerContent(
+                    settingsSelected = false,
+                    onSettingsClick = {
+                        scope.launch {
+                            drawerState.close()
+                            showSettings = true
+                        }
+                    }
+                )
             }
         ) {
             Scaffold(
@@ -392,5 +383,96 @@ fun PawlApp(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AppNavigationDrawerContent(
+    settingsSelected: Boolean,
+    onSettingsClick: () -> Unit,
+) {
+    ModalDrawerSheet(
+        drawerContainerColor = AppWhite,
+        drawerTonalElevation = 0.dp,
+    ) {
+        Column(modifier = Modifier.fillMaxHeight()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppWhite)
+                    .padding(top = 32.dp, bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.vm_pic),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "VM-LIKE",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppBrown,
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(AppWhite)
+                    .padding(vertical = 16.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (settingsSelected) AppLightBrown else AppWhite)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onSettingsClick,
+                        )
+                        .padding(horizontal = 28.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = AppBrown,
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Settings",
+                        color = AppBrown,
+                        fontSize = 16.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 300, heightDp = 600)
+@Composable
+private fun AppNavigationDrawerContentPreview() {
+    PawlTheme {
+        AppNavigationDrawerContent(
+            settingsSelected = false,
+            onSettingsClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 300, heightDp = 600, name = "Settings selected")
+@Composable
+private fun AppNavigationDrawerContentSelectedPreview() {
+    PawlTheme {
+        AppNavigationDrawerContent(
+            settingsSelected = true,
+            onSettingsClick = {},
+        )
     }
 }
