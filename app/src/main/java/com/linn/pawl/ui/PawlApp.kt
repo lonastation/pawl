@@ -174,6 +174,8 @@ fun PawlApp(
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var reopenDrawerAfterSettings by remember { mutableStateOf(false) }
+    var settingsHighlightedInDrawer by remember { mutableStateOf(false) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     var selectedImageId by remember { mutableLongStateOf(-1L) }
     val videoListState = rememberLazyListState()
@@ -182,6 +184,13 @@ fun PawlApp(
     LaunchedEffect(showSettings, videoUiState.isScanning, imageUiState.isScanning) {
         if (showSettings && !videoUiState.isScanning && !imageUiState.isScanning) {
             settingsViewModel.refreshCounts()
+        }
+    }
+
+    LaunchedEffect(reopenDrawerAfterSettings, showSettings) {
+        if (reopenDrawerAfterSettings && !showSettings) {
+            drawerState.open()
+            reopenDrawerAfterSettings = false
         }
     }
 
@@ -221,6 +230,7 @@ fun PawlApp(
     }
 
     val openDrawer: () -> Unit = {
+        settingsHighlightedInDrawer = false
         scope.launch { drawerState.open() }
     }
 
@@ -237,9 +247,14 @@ fun PawlApp(
             onBack = { selectedImageId = -1L }
         )
     } else if (showSettings) {
-        BackHandler { showSettings = false }
+        val leaveSettings: () -> Unit = {
+            showSettings = false
+            settingsHighlightedInDrawer = true
+            reopenDrawerAfterSettings = true
+        }
+        BackHandler(onBack = leaveSettings)
         SettingsScreen(
-            onBack = { showSettings = false },
+            onBack = leaveSettings,
             isVideoScanning = videoUiState.isScanning,
             onRegenerateVideoClick = onRegenerateVideoClick,
             videoFingerprintCount = settingsUiState.videoFingerprintCount,
@@ -258,15 +273,17 @@ fun PawlApp(
             drawerState = drawerState,
             drawerContent = {
                 AppNavigationDrawerContent(
-                    recentlyDeletedSelected = selectedTab == AppTab.Recycle,
-                    settingsSelected = false,
+                    recentlyDeletedSelected = selectedTab == AppTab.Recycle && !settingsHighlightedInDrawer,
+                    settingsSelected = settingsHighlightedInDrawer,
                     onRecentlyDeletedClick = {
+                        settingsHighlightedInDrawer = false
                         scope.launch {
                             drawerState.close()
                             selectedTab = AppTab.Recycle
                         }
                     },
                     onSettingsClick = {
+                        settingsHighlightedInDrawer = false
                         scope.launch {
                             drawerState.close()
                             showSettings = true
@@ -395,7 +412,7 @@ private fun AppNavigationDrawerContent(
     onSettingsClick: () -> Unit,
 ) {
     ModalDrawerSheet(
-        drawerContainerColor = AppWhite,
+        drawerContainerColor = AppBrown,
         drawerTonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxHeight()) {
@@ -403,7 +420,7 @@ private fun AppNavigationDrawerContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppWhite)
-                    .padding(top = 32.dp, bottom = 12.dp),
+                    .padding(top = 32.dp, bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
@@ -417,7 +434,7 @@ private fun AppNavigationDrawerContent(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "VM-LIKE",
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = AppBrown,
                 )
@@ -426,7 +443,7 @@ private fun AppNavigationDrawerContent(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .background(AppWhite)
+                    .background(AppBrown)
                     .padding(vertical = 16.dp),
             ) {
                 AppNavigationDrawerItem(
@@ -453,11 +470,11 @@ private fun AppNavigationDrawerItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val contentColor = if (selected) AppWhite else AppBrown
+    val contentColor = if (selected) AppBrown else AppWhite
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (selected) AppBrown else AppWhite)
+            .background(if (selected) AppWhite else AppBrown)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
