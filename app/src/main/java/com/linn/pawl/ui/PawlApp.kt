@@ -240,7 +240,9 @@ fun PawlApp(
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                ModalDrawerSheet {
+                ModalDrawerSheet(
+                    drawerContainerColor = AppWhite,
+                ) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "VM-LIKE",
@@ -383,6 +385,7 @@ fun PawlApp(
                         onToggleSelection = recyclingStationViewModel::toggleSelection,
                         onRestoreSelected = recyclingStationViewModel::restoreSelected,
                         onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected,
+                        onPermanentlyDeleteAll = recyclingStationViewModel::permanentlyDeleteAll,
                         onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) },
                         onOpenDrawer = openDrawer,
                     )

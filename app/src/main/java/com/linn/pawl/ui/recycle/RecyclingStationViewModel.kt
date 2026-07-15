@@ -166,6 +166,24 @@ class RecyclingStationViewModel @Inject constructor(
         }
     }
 
+    fun permanentlyDeleteAll() {
+        val ids = _uiState.value.items.map { it.id }
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isBusy = true, errorMessage = null)
+            try {
+                recycledMediaRepository.permanentlyDelete(ids)
+                _uiState.value = _uiState.value.copy(isBusy = false, selectedIds = emptySet())
+                load()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isBusy = false,
+                    errorMessage = e.message ?: "Failed to delete"
+                )
+            }
+        }
+    }
+
     fun trashFilePath(entity: RecycledMediaEntity): String =
         recycledMediaRepository.trashFileFor(entity).absolutePath
 

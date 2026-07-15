@@ -58,6 +58,7 @@ import com.linn.pawl.data.local.RecycledMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
 import com.linn.pawl.ui.theme.AppBrown
 import com.linn.pawl.ui.theme.AppLightBrown
+import com.linn.pawl.ui.theme.AppRed
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatFileSize
@@ -75,10 +76,12 @@ fun RecyclingStationScreen(
     onToggleSelection: (String) -> Unit,
     onRestoreSelected: () -> Unit,
     onPermanentlyDeleteSelected: () -> Unit,
+    onPermanentlyDeleteAll: () -> Unit = {},
     onRequestAllFilesAccess: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
 ) {
     val showActions = uiState.selectedIds.isNotEmpty() && !uiState.isBusy
+    val canDeleteAll = uiState.items.isNotEmpty() && !uiState.isBusy && !uiState.isLoading
 
     Scaffold(
         modifier = modifier,
@@ -188,6 +191,23 @@ fun RecyclingStationScreen(
                             selectedBorderColor = AppBrown,
                         )
                     )
+                }
+
+                if (canDeleteAll) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onPermanentlyDeleteAll,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppRed,
+                            contentColor = AppWhite
+                        )
+                    ) {
+                        Text("Delete All", fontSize = 16.sp)
+                    }
                 }
 
                 if (uiState.errorMessage != null) {
@@ -518,14 +538,14 @@ private fun RecyclingStationScreenPreview() {
         RecyclingStationScreen(
             uiState = RecyclingStationViewModel.UiState(
                 items = previewRecycledItems,
-                selectedIds = setOf("img-2"),
                 hasAllFilesAccess = false
             ),
             trashFilePath = { "" },
             onFilterChange = {},
             onToggleSelection = {},
             onRestoreSelected = {},
-            onPermanentlyDeleteSelected = {}
+            onPermanentlyDeleteSelected = {},
+            onPermanentlyDeleteAll = {}
         )
     }
 }
@@ -537,14 +557,14 @@ private fun RecyclingStationScreenWithAllFilesAccessPreview() {
         RecyclingStationScreen(
             uiState = RecyclingStationViewModel.UiState(
                 items = previewRecycledItems,
-                selectedIds = setOf("img-2"),
                 hasAllFilesAccess = true
             ),
             trashFilePath = { "" },
             onFilterChange = {},
             onToggleSelection = {},
             onRestoreSelected = {},
-            onPermanentlyDeleteSelected = {}
+            onPermanentlyDeleteSelected = {},
+            onPermanentlyDeleteAll = {}
         )
     }
 }
@@ -557,6 +577,25 @@ private fun RecyclingStationScreenImagesPreview() {
             uiState = RecyclingStationViewModel.UiState(
                 items = previewRecycledItems,
                 filter = RecycleFilter.Images,
+                hasAllFilesAccess = true
+            ),
+            trashFilePath = { "" },
+            onFilterChange = {},
+            onToggleSelection = {},
+            onRestoreSelected = {},
+            onPermanentlyDeleteSelected = {},
+            onPermanentlyDeleteAll = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "With Selection")
+@Composable
+private fun RecyclingStationScreenWithSelectionPreview() {
+    PawlTheme {
+        RecyclingStationScreen(
+            uiState = RecyclingStationViewModel.UiState(
+                items = previewRecycledItems,
                 selectedIds = setOf("img-2"),
                 hasAllFilesAccess = true
             ),
@@ -564,7 +603,8 @@ private fun RecyclingStationScreenImagesPreview() {
             onFilterChange = {},
             onToggleSelection = {},
             onRestoreSelected = {},
-            onPermanentlyDeleteSelected = {}
+            onPermanentlyDeleteSelected = {},
+            onPermanentlyDeleteAll = {}
         )
     }
 }
@@ -579,7 +619,8 @@ private fun RecyclingStationScreenEmptyPreview() {
             onFilterChange = {},
             onToggleSelection = {},
             onRestoreSelected = {},
-            onPermanentlyDeleteSelected = {}
+            onPermanentlyDeleteSelected = {},
+            onPermanentlyDeleteAll = {}
         )
     }
 }
