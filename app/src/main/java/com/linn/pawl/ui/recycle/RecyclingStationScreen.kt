@@ -138,7 +138,7 @@ fun RecyclingStationScreen(
                         onClick = onRequestAllFilesAccess,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(50.dp),
                         shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AppBrown),
                         border = BorderStroke(1.dp, AppBrown)

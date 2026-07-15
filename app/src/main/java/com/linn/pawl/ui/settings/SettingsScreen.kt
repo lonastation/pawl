@@ -120,7 +120,7 @@ fun SettingsScreen(
                 onClick = onRegenerateVideoClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(50.dp),
                 shape = MaterialTheme.shapes.medium,
                 enabled = !isVideoScanning,
                 colors = regenerateButtonColors,
@@ -150,7 +150,7 @@ fun SettingsScreen(
                 onClick = onClearIgnoredVideoGroups,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(50.dp),
                 shape = MaterialTheme.shapes.medium,
                 enabled = videoIgnoredGroupCount > 0 && !isVideoScanning,
                 colors = regenerateButtonColors,
@@ -192,7 +192,7 @@ fun SettingsScreen(
                 onClick = onRegenerateImageClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(50.dp),
                 shape = MaterialTheme.shapes.medium,
                 enabled = !isImageScanning,
                 colors = regenerateButtonColors,
@@ -222,7 +222,7 @@ fun SettingsScreen(
                 onClick = onClearIgnoredImageGroups,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(50.dp),
                 shape = MaterialTheme.shapes.medium,
                 enabled = imageIgnoredGroupCount > 0 && !isImageScanning,
                 colors = regenerateButtonColors,
@@ -273,7 +273,7 @@ fun SettingsScreen(
                     onClick = onRequestAllFilesAccess,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(50.dp),
                     shape = MaterialTheme.shapes.medium,
                     colors = regenerateButtonColors,
                     border = BorderStroke(1.dp, AppRed),
