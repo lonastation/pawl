@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CatchingPokemon
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Recycling
 import androidx.compose.material.icons.filled.Settings
@@ -403,7 +404,7 @@ private fun AppNavigationDrawerContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppWhite)
-                    .padding(top = 32.dp, bottom = 16.dp),
+                    .padding(top = 32.dp, bottom = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
@@ -431,7 +432,7 @@ private fun AppNavigationDrawerContent(
             ) {
                 AppNavigationDrawerItem(
                     label = "Recently deleted",
-                    icon = Icons.Default.Recycling,
+                    icon = Icons.Default.CatchingPokemon,
                     selected = recentlyDeletedSelected,
                     onClick = onRecentlyDeletedClick,
                 )
@@ -453,27 +454,28 @@ private fun AppNavigationDrawerItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val contentColor = if (selected) AppWhite else AppBrown
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (selected) AppLightBrown else AppWhite)
+            .background(if (selected) AppBrown else AppWhite)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 28.dp, vertical = 12.dp),
+            .padding(horizontal = 28.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = AppBrown,
+            tint = contentColor,
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
-            color = AppBrown,
+            color = contentColor,
             fontSize = 16.sp,
         )
     }
