@@ -147,6 +147,22 @@ fun RecyclingStationScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 }
+                if (canDeleteAll) {
+                    Button(
+                        onClick = onPermanentlyDeleteAll,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppRed,
+                            contentColor = AppWhite
+                        )
+                    ) {
+                        Text("Delete All", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -191,23 +207,6 @@ fun RecyclingStationScreen(
                             selectedBorderColor = AppBrown,
                         )
                     )
-                }
-
-                if (canDeleteAll) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = onPermanentlyDeleteAll,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppRed,
-                            contentColor = AppWhite
-                        )
-                    ) {
-                        Text("Delete All", fontSize = 16.sp)
-                    }
                 }
 
                 if (uiState.errorMessage != null) {
