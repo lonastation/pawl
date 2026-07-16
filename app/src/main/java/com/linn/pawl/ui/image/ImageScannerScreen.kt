@@ -57,6 +57,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import com.linn.pawl.ui.navigation.AppBottomNavigationBar
+import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatAspectRatio
@@ -366,40 +368,118 @@ private fun ImageThumbnail(
     }
 }
 
-private val previewImageGroup = ImageDuplicateGroup(
-    images = listOf(
-        ImageFile(
-            mediaId = 1L,
-            contentUri = "content://media/external/images/media/1".toUri(),
-            path = "/storage/emulated/0/DCIM/Camera/photo.jpg",
-            name = "photo.jpg",
-            size = 2_500_000L,
-            width = 4032,
-            height = 3024
-        ),
-        ImageFile(
-            mediaId = 2L,
-            contentUri = "content://media/external/images/media/2".toUri(),
-            path = "/storage/emulated/0/Pictures/photo_copy.jpg",
-            name = "photo_copy.jpg",
-            size = 2_500_000L,
-            width = 4032,
-            height = 3024
+private val previewDuplicateGroups = listOf(
+    ImageDuplicateGroup(
+        images = listOf(
+            ImageFile(
+                mediaId = 1L,
+                contentUri = "content://media/external/images/media/1".toUri(),
+                path = "/storage/emulated/0/DCIM/Camera/photo.jpg",
+                name = "photo.jpg",
+                size = 2_500_000L,
+                width = 4032,
+                height = 3024
+            ),
+            ImageFile(
+                mediaId = 2L,
+                contentUri = "content://media/external/images/media/2".toUri(),
+                path = "/storage/emulated/0/Pictures/photo_copy.jpg",
+                name = "photo_copy.jpg",
+                size = 2_500_000L,
+                width = 4032,
+                height = 3024
+            )
         )
-    )
+    ),
+    ImageDuplicateGroup(
+        images = listOf(
+            ImageFile(
+                mediaId = 3L,
+                contentUri = "content://media/external/images/media/3".toUri(),
+                path = "/storage/emulated/0/DCIM/Screenshots/Screenshot_20260315.png",
+                name = "Screenshot_20260315.png",
+                size = 850_000L,
+                width = 1080,
+                height = 2400
+            ),
+            ImageFile(
+                mediaId = 4L,
+                contentUri = "content://media/external/images/media/4".toUri(),
+                path = "/storage/emulated/0/Pictures/Screenshot_20260315 (1).png",
+                name = "Screenshot_20260315 (1).png",
+                size = 850_000L,
+                width = 1080,
+                height = 2400
+            ),
+            ImageFile(
+                mediaId = 5L,
+                contentUri = "content://media/external/images/media/5".toUri(),
+                path = "/storage/emulated/0/Download/Screenshot_20260315_copy.png",
+                name = "Screenshot_20260315_copy.png",
+                size = 849_500L,
+                width = 1080,
+                height = 2400
+            )
+        )
+    ),
+    ImageDuplicateGroup(
+        images = listOf(
+            ImageFile(
+                mediaId = 6L,
+                contentUri = "content://media/external/images/media/6".toUri(),
+                path = "/storage/emulated/0/DCIM/Camera/IMG_20260201_143022.jpg",
+                name = "IMG_20260201_143022.jpg",
+                size = 4_100_000L,
+                width = 4000,
+                height = 3000
+            ),
+            ImageFile(
+                mediaId = 7L,
+                contentUri = "content://media/external/images/media/7".toUri(),
+                path = "/storage/emulated/0/DCIM/Camera/IMG_20260201_143023.jpg",
+                name = "IMG_20260201_143023.jpg",
+                size = 4_095_000L,
+                width = 4000,
+                height = 3000
+            )
+        )
+    ),
 )
+
+private val previewTotalDuplicates =
+    previewDuplicateGroups.sumOf { it.images.size } - previewDuplicateGroups.size
+
+@Composable
+private fun ImageScannerScreenPreviewContent(
+    uiState: ImageScannerViewModel.UiState,
+) {
+    Scaffold(
+        bottomBar = {
+            AppBottomNavigationBar(
+                selectedTab = AppTab.Image,
+                onVideoTabClick = {},
+                onImageTabClick = {},
+            )
+        }
+    ) { innerPadding ->
+        ImageScannerScreen(
+            modifier = Modifier.padding(innerPadding),
+            uiState = uiState,
+            onFindSimilarClick = {},
+        )
+    }
+}
 
 @Preview(showBackground = true, heightDp = 800)
 @Composable
 private fun ImageScannerScreenPreview() {
     PawlTheme {
-        ImageScannerScreen(
+        ImageScannerScreenPreviewContent(
             uiState = ImageScannerViewModel.UiState(
                 totalImages = 256,
-                totalDuplicates = 2,
-                duplicateGroups = listOf(previewImageGroup)
+                totalDuplicates = previewTotalDuplicates,
+                duplicateGroups = previewDuplicateGroups
             ),
-            onFindSimilarClick = {}
         )
     }
 }
@@ -408,13 +488,12 @@ private fun ImageScannerScreenPreview() {
 @Composable
 private fun ImageScannerScreenScanningPreview() {
     PawlTheme {
-        ImageScannerScreen(
+        ImageScannerScreenPreviewContent(
             uiState = ImageScannerViewModel.UiState(
                 isScanning = true,
                 totalImages = 256,
                 scannedCount = 80
             ),
-            onFindSimilarClick = {}
         )
     }
 }
@@ -423,14 +502,13 @@ private fun ImageScannerScreenScanningPreview() {
 @Composable
 private fun ImageScannerScreenDeletePreview() {
     PawlTheme {
-        ImageScannerScreen(
+        ImageScannerScreenPreviewContent(
             uiState = ImageScannerViewModel.UiState(
                 totalImages = 256,
-                totalDuplicates = 2,
-                duplicateGroups = listOf(previewImageGroup),
+                totalDuplicates = previewTotalDuplicates,
+                duplicateGroups = previewDuplicateGroups,
                 selectedImageIds = setOf(2L)
             ),
-            onFindSimilarClick = {}
         )
     }
 }

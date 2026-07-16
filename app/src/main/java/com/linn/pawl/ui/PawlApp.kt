@@ -26,18 +26,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CatchingPokemon
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -73,13 +68,13 @@ import com.linn.pawl.R
 import com.linn.pawl.ui.image.ImageDetailScreen
 import com.linn.pawl.ui.image.ImageScannerScreen
 import com.linn.pawl.ui.image.ImageScannerViewModel
+import com.linn.pawl.ui.navigation.AppBottomNavigationBar
 import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.recycle.RecyclingStationScreen
 import com.linn.pawl.ui.recycle.RecyclingStationViewModel
 import com.linn.pawl.ui.settings.SettingsScreen
 import com.linn.pawl.ui.settings.SettingsViewModel
 import com.linn.pawl.ui.theme.AppBrown
-import com.linn.pawl.ui.theme.AppLightBrown
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.video.VideoDetailScreen
@@ -305,35 +300,17 @@ fun PawlApp(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 bottomBar = {
-                    val navItemColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AppWhite,
-                        selectedTextColor = AppWhite,
-                        unselectedIconColor = AppLightBrown,
-                        unselectedTextColor = AppLightBrown,
-                        indicatorColor = AppLightBrown.copy(alpha = 0.35f),
+                    AppBottomNavigationBar(
+                        selectedTab = selectedTab,
+                        onVideoTabClick = {
+                            selectedTab = AppTab.Video
+                            lastMainTab = AppTab.Video
+                        },
+                        onImageTabClick = {
+                            selectedTab = AppTab.Image
+                            lastMainTab = AppTab.Image
+                        },
                     )
-                    NavigationBar(containerColor = AppBrown) {
-                        NavigationBarItem(
-                            selected = selectedTab == AppTab.Video,
-                            onClick = {
-                                selectedTab = AppTab.Video
-                                lastMainTab = AppTab.Video
-                            },
-                            icon = { Icon(Icons.Default.VideoLibrary, contentDescription = "Video") },
-                            label = { Text("Video") },
-                            colors = navItemColors,
-                        )
-                        NavigationBarItem(
-                            selected = selectedTab == AppTab.Image,
-                            onClick = {
-                                selectedTab = AppTab.Image
-                                lastMainTab = AppTab.Image
-                            },
-                            icon = { Icon(Icons.Default.Image, contentDescription = "Image") },
-                            label = { Text("Image") },
-                            colors = navItemColors,
-                        )
-                    }
                 }
             ) { innerPadding ->
                 when (selectedTab) {
