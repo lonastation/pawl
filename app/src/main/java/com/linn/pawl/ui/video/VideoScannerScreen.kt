@@ -84,6 +84,7 @@ fun VideoScannerScreen(
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {

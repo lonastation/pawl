@@ -86,6 +86,7 @@ fun ImageScannerScreen(
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -454,6 +455,7 @@ private fun ImageScannerScreenPreviewContent(
     uiState: ImageScannerViewModel.UiState,
 ) {
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             AppBottomNavigationBar(
                 selectedTab = AppTab.Image,

@@ -173,8 +173,8 @@ fun PawlApp(
     }
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
-    var lastMainTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showRecycle by rememberSaveable { mutableStateOf(false) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     var selectedImageId by remember { mutableLongStateOf(-1L) }
     val videoListState = rememberLazyListState()
@@ -186,8 +186,8 @@ fun PawlApp(
         }
     }
 
-    LaunchedEffect(selectedTab) {
-        if (selectedTab == AppTab.Recycle) {
+    LaunchedEffect(showRecycle) {
+        if (showRecycle) {
             recyclingStationViewModel.load()
         }
     }
@@ -225,10 +225,6 @@ fun PawlApp(
         scope.launch { drawerState.open() }
     }
 
-    val leaveRecycle: () -> Unit = {
-        selectedTab = lastMainTab
-    }
-
     if (selectedVideo != null) {
         BackHandler { selectedVideoId = -1L }
         VideoDetailScreen(
@@ -258,10 +254,20 @@ fun PawlApp(
             hasAllFilesAccess = settingsUiState.hasAllFilesAccess,
             onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) }
         )
+    } else if (showRecycle) {
+        BackHandler { showRecycle = false }
+        RecyclingStationScreen(
+            uiState = recycleUiState,
+            trashFilePath = recyclingStationViewModel::trashFilePath,
+            onFilterChange = recyclingStationViewModel::setFilter,
+            onToggleSelection = recyclingStationViewModel::toggleSelection,
+            onRestoreSelected = recyclingStationViewModel::restoreSelected,
+            onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected,
+            onPermanentlyDeleteAll = recyclingStationViewModel::permanentlyDeleteAll,
+            onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) },
+            onBack = { showRecycle = false },
+        )
     } else {
-        if (selectedTab == AppTab.Recycle) {
-            BackHandler(onBack = leaveRecycle)
-        }
         val drawerWidth = with(LocalDensity.current) {
             (LocalWindowInfo.current.containerSize.width * 0.78f).toDp()
         }.coerceAtMost(320.dp)
@@ -275,15 +281,12 @@ fun PawlApp(
             drawerContent = {
                 AppNavigationDrawerContent(
                     modifier = Modifier.width(drawerWidth),
-                    recentlyDeletedSelected = selectedTab == AppTab.Recycle,
+                    recentlyDeletedSelected = false,
                     settingsSelected = false,
                     onRecentlyDeletedClick = {
-                        if (selectedTab == AppTab.Video || selectedTab == AppTab.Image) {
-                            lastMainTab = selectedTab
-                        }
                         scope.launch {
                             drawerState.close()
-                            selectedTab = AppTab.Recycle
+                            showRecycle = true
                         }
                     },
                     onSettingsClick = {
@@ -302,14 +305,8 @@ fun PawlApp(
                 bottomBar = {
                     AppBottomNavigationBar(
                         selectedTab = selectedTab,
-                        onVideoTabClick = {
-                            selectedTab = AppTab.Video
-                            lastMainTab = AppTab.Video
-                        },
-                        onImageTabClick = {
-                            selectedTab = AppTab.Image
-                            lastMainTab = AppTab.Image
-                        },
+                        onVideoTabClick = { selectedTab = AppTab.Video },
+                        onImageTabClick = { selectedTab = AppTab.Image },
                     )
                 }
             ) { innerPadding ->
@@ -377,18 +374,6 @@ fun PawlApp(
                             }
                         },
                         onOpenDrawer = openDrawer,
-                    )
-                    AppTab.Recycle -> RecyclingStationScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        uiState = recycleUiState,
-                        trashFilePath = recyclingStationViewModel::trashFilePath,
-                        onFilterChange = recyclingStationViewModel::setFilter,
-                        onToggleSelection = recyclingStationViewModel::toggleSelection,
-                        onRestoreSelected = recyclingStationViewModel::restoreSelected,
-                        onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected,
-                        onPermanentlyDeleteAll = recyclingStationViewModel::permanentlyDeleteAll,
-                        onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) },
-                        onBack = leaveRecycle,
                     )
                 }
             }
