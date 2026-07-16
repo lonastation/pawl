@@ -3,8 +3,8 @@ package com.linn.pawl.data.local
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "recycled_media")
-data class RecycledMediaEntity(
+@Entity(tableName = "trash_media")
+data class TrashMediaEntity(
     @PrimaryKey val id: String,
     val mediaType: String,
     val originalMediaId: Long,

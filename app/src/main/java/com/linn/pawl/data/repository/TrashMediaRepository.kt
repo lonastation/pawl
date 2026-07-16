@@ -7,8 +7,8 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
-import com.linn.pawl.data.local.RecycledMediaDao
-import com.linn.pawl.data.local.RecycledMediaEntity
+import com.linn.pawl.data.local.TrashMediaDao
+import com.linn.pawl.data.local.TrashMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class RecycleCandidate(
+data class TrashCandidate(
     val contentUri: Uri,
     val mediaType: String,
     val originalMediaId: Long,
@@ -33,15 +33,15 @@ data class RecycleCandidate(
     val dateTaken: Long
 )
 
-data class StagedRecycleItem(
-    val entity: RecycledMediaEntity,
+data class StagedTrashItem(
+    val entity: TrashMediaEntity,
     val contentUri: Uri
 )
 
 @Singleton
-class RecycledMediaRepository @Inject constructor(
+class TrashMediaRepository @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val dao: RecycledMediaDao
+    private val dao: TrashMediaDao
 ) {
 
     private val trashDir: File
@@ -49,13 +49,13 @@ class RecycledMediaRepository @Inject constructor(
 
     fun hasAllFilesAccess(): Boolean = Environment.isExternalStorageManager()
 
-    suspend fun getAll(): List<RecycledMediaEntity> = withContext(Dispatchers.IO) {
+    suspend fun getAll(): List<TrashMediaEntity> = withContext(Dispatchers.IO) {
         dao.getAll()
     }
 
-    suspend fun stage(candidates: List<RecycleCandidate>): List<StagedRecycleItem> =
+    suspend fun stage(candidates: List<TrashCandidate>): List<StagedTrashItem> =
         withContext(Dispatchers.IO) {
-            val staged = mutableListOf<StagedRecycleItem>()
+            val staged = mutableListOf<StagedTrashItem>()
             try {
                 candidates.forEach { candidate ->
                     staged += stageCopy(
@@ -83,12 +83,12 @@ class RecycledMediaRepository @Inject constructor(
             }
         }
 
-    suspend fun commit(staged: List<StagedRecycleItem>) = withContext(Dispatchers.IO) {
+    suspend fun commit(staged: List<StagedTrashItem>) = withContext(Dispatchers.IO) {
         if (staged.isEmpty()) return@withContext
         dao.upsertAll(staged.map { it.entity })
     }
 
-    suspend fun abort(staged: List<StagedRecycleItem>) = withContext(Dispatchers.IO) {
+    suspend fun abort(staged: List<StagedTrashItem>) = withContext(Dispatchers.IO) {
         staged.forEach { item ->
             File(trashDir, item.entity.trashFileName).delete()
         }
@@ -118,7 +118,7 @@ class RecycledMediaRepository @Inject constructor(
         deleteEntities(entities.map { it.id })
     }
 
-    /** Permanently removes recycled items older than [retentionMillis]. */
+    /** Permanently removes trash items older than [retentionMillis]. */
     suspend fun purgeExpired(
         nowMillis: Long = System.currentTimeMillis(),
         retentionMillis: Long = RETENTION_MILLIS
@@ -132,7 +132,7 @@ class RecycledMediaRepository @Inject constructor(
         expired.size
     }
 
-    fun trashFileFor(entity: RecycledMediaEntity): File =
+    fun trashFileFor(entity: TrashMediaEntity): File =
         File(trashDir, entity.trashFileName)
 
     private fun stageCopy(
@@ -147,7 +147,7 @@ class RecycledMediaRepository @Inject constructor(
         durationMs: Long,
         originalPath: String,
         dateTaken: Long
-    ): StagedRecycleItem {
+    ): StagedTrashItem {
         val id = UUID.randomUUID().toString()
         val extension = displayName.substringAfterLast('.', missingDelimiterValue = "")
         val trashFileName = if (extension.isNotEmpty()) "$id.$extension" else id
@@ -157,7 +157,7 @@ class RecycledMediaRepository @Inject constructor(
             trashFile.outputStream().use { output -> input.copyTo(output) }
         } ?: error("Unable to read media: $displayName")
 
-        val entity = RecycledMediaEntity(
+        val entity = TrashMediaEntity(
             id = id,
             mediaType = mediaType,
             originalMediaId = originalMediaId,
@@ -173,10 +173,10 @@ class RecycledMediaRepository @Inject constructor(
             dateTaken = dateTaken,
             recycledAt = System.currentTimeMillis()
         )
-        return StagedRecycleItem(entity = entity, contentUri = contentUri)
+        return StagedTrashItem(entity = entity, contentUri = contentUri)
     }
 
-    private fun restoreToOriginalPath(entity: RecycledMediaEntity) {
+    private fun restoreToOriginalPath(entity: TrashMediaEntity) {
         val trashFile = File(trashDir, entity.trashFileName)
         if (!trashFile.exists()) error("Trash file missing: ${entity.displayName}")
 
@@ -200,7 +200,7 @@ class RecycledMediaRepository @Inject constructor(
         )
     }
 
-    private fun restoreToMediaStore(entity: RecycledMediaEntity) {
+    private fun restoreToMediaStore(entity: TrashMediaEntity) {
         val trashFile = File(trashDir, entity.trashFileName)
         if (!trashFile.exists()) error("Trash file missing: ${entity.displayName}")
 

@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.linn.pawl.data.model.DuplicateGroupKey
 import com.linn.pawl.data.repository.IgnoredDuplicateGroupRepository
 import com.linn.pawl.data.repository.ImageSignatureRepository
-import com.linn.pawl.data.repository.RecycledMediaRepository
+import com.linn.pawl.data.repository.TrashMediaRepository
 import com.linn.pawl.data.repository.VideoSignatureRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,7 @@ class SettingsViewModel @Inject constructor(
     private val videoSignatureRepository: VideoSignatureRepository,
     private val imageSignatureRepository: ImageSignatureRepository,
     private val ignoredGroupRepository: IgnoredDuplicateGroupRepository,
-    private val recycledMediaRepository: RecycledMediaRepository
+    private val trashMediaRepository: TrashMediaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -32,14 +32,14 @@ class SettingsViewModel @Inject constructor(
                 imageFingerprintCount = imageSignatureRepository.getCount(),
                 videoIgnoredGroupCount = ignoredGroupRepository.getCount(DuplicateGroupKey.MEDIA_VIDEO),
                 imageIgnoredGroupCount = ignoredGroupRepository.getCount(DuplicateGroupKey.MEDIA_IMAGE),
-                hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
+                hasAllFilesAccess = trashMediaRepository.hasAllFilesAccess()
             )
         }
     }
 
     fun refreshAllFilesAccess() {
         _uiState.value = _uiState.value.copy(
-            hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
+            hasAllFilesAccess = trashMediaRepository.hasAllFilesAccess()
         )
     }
 

@@ -8,14 +8,14 @@ import androidx.room.RoomDatabase
         VideoSignatureEntity::class,
         ImageSignatureEntity::class,
         IgnoredDuplicateGroupEntity::class,
-        RecycledMediaEntity::class
+        TrashMediaEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class PawlDatabase : RoomDatabase() {
     abstract fun videoSignatureDao(): VideoSignatureDao
     abstract fun imageSignatureDao(): ImageSignatureDao
     abstract fun ignoredDuplicateGroupDao(): IgnoredDuplicateGroupDao
-    abstract fun recycledMediaDao(): RecycledMediaDao
+    abstract fun trashMediaDao(): TrashMediaDao
 }

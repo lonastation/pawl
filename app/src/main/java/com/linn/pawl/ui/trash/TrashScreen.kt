@@ -1,4 +1,4 @@
-package com.linn.pawl.ui.recycle
+package com.linn.pawl.ui.trash
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -54,7 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.linn.pawl.data.local.RecycledMediaEntity
+import com.linn.pawl.data.local.TrashMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
 import com.linn.pawl.ui.theme.AppBrown
 import com.linn.pawl.ui.theme.AppLightBrown
@@ -68,11 +68,11 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecyclingStationScreen(
+fun TrashScreen(
     modifier: Modifier = Modifier,
-    uiState: RecyclingStationViewModel.UiState,
-    trashFilePath: (RecycledMediaEntity) -> String,
-    onFilterChange: (RecycleFilter) -> Unit,
+    uiState: TrashViewModel.UiState,
+    trashFilePath: (TrashMediaEntity) -> String,
+    onFilterChange: (TrashFilter) -> Unit,
     onToggleSelection: (String) -> Unit,
     onRestoreSelected: () -> Unit,
     onPermanentlyDeleteSelected: () -> Unit,
@@ -172,37 +172,37 @@ fun RecyclingStationScreen(
                         labelColor = AppBrown,
                     )
                     FilterChip(
-                        selected = uiState.filter == RecycleFilter.All,
-                        onClick = { onFilterChange(RecycleFilter.All) },
+                        selected = uiState.filter == TrashFilter.All,
+                        onClick = { onFilterChange(TrashFilter.All) },
                         label = { Text("All") },
                         colors = filterChipColors,
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
-                            selected = uiState.filter == RecycleFilter.All,
+                            selected = uiState.filter == TrashFilter.All,
                             borderColor = AppLightBrown,
                             selectedBorderColor = AppBrown,
                         )
                     )
                     FilterChip(
-                        selected = uiState.filter == RecycleFilter.Images,
-                        onClick = { onFilterChange(RecycleFilter.Images) },
+                        selected = uiState.filter == TrashFilter.Images,
+                        onClick = { onFilterChange(TrashFilter.Images) },
                         label = { Text("Images") },
                         colors = filterChipColors,
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
-                            selected = uiState.filter == RecycleFilter.Images,
+                            selected = uiState.filter == TrashFilter.Images,
                             borderColor = AppLightBrown,
                             selectedBorderColor = AppBrown,
                         )
                     )
                     FilterChip(
-                        selected = uiState.filter == RecycleFilter.Videos,
-                        onClick = { onFilterChange(RecycleFilter.Videos) },
+                        selected = uiState.filter == TrashFilter.Videos,
+                        onClick = { onFilterChange(TrashFilter.Videos) },
                         label = { Text("Videos") },
                         colors = filterChipColors,
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
-                            selected = uiState.filter == RecycleFilter.Videos,
+                            selected = uiState.filter == TrashFilter.Videos,
                             borderColor = AppLightBrown,
                             selectedBorderColor = AppBrown,
                         )
@@ -226,7 +226,7 @@ fun RecyclingStationScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Loading...", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -236,7 +236,7 @@ fun RecyclingStationScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Recycling station is empty",
+                                text = "Trash is empty",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 16.sp
                             )
@@ -251,13 +251,13 @@ fun RecyclingStationScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            if (uiState.filter == RecycleFilter.All) {
+                            if (uiState.filter == TrashFilter.All) {
                                 if (uiState.images.isNotEmpty()) {
                                     item {
                                         SectionHeader("Images (${uiState.images.size})")
                                     }
                                     items(uiState.images, key = { it.id }) { item ->
-                                        RecycledMediaCard(
+                                        TrashMediaCard(
                                             item = item,
                                             trashPath = trashFilePath(item),
                                             selected = item.id in uiState.selectedIds,
@@ -270,7 +270,7 @@ fun RecyclingStationScreen(
                                         SectionHeader("Videos (${uiState.videos.size})")
                                     }
                                     items(uiState.videos, key = { it.id }) { item ->
-                                        RecycledMediaCard(
+                                        TrashMediaCard(
                                             item = item,
                                             trashPath = trashFilePath(item),
                                             selected = item.id in uiState.selectedIds,
@@ -280,7 +280,7 @@ fun RecyclingStationScreen(
                                 }
                             } else {
                                 items(uiState.visibleItems, key = { it.id }) { item ->
-                                    RecycledMediaCard(
+                                    TrashMediaCard(
                                         item = item,
                                         trashPath = trashFilePath(item),
                                         selected = item.id in uiState.selectedIds,
@@ -348,8 +348,8 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun RecycledMediaCard(
-    item: RecycledMediaEntity,
+private fun TrashMediaCard(
+    item: TrashMediaEntity,
     trashPath: String,
     selected: Boolean,
     onToggleSelection: () -> Unit
@@ -441,7 +441,7 @@ private fun TrashThumbnail(
             modifier = modifier.background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center
         ) {
-            Text(if (isVideo) "▶" else "🖼", fontSize = 20.sp)
+            Text(if (isVideo) "\u25B6" else "\uD83D\uDDBC", fontSize = 20.sp)
         }
     }
 }
@@ -463,8 +463,8 @@ private fun calculateInSampleSize(
     return inSampleSize
 }
 
-private val previewRecycledItems = listOf(
-    RecycledMediaEntity(
+private val previewTrashItems = listOf(
+    TrashMediaEntity(
         id = "img-1",
         mediaType = DuplicateGroupKey.MEDIA_IMAGE,
         originalMediaId = 1L,
@@ -480,7 +480,7 @@ private val previewRecycledItems = listOf(
         dateTaken = 1_700_000_000_000L,
         recycledAt = 1_710_000_000_000L
     ),
-    RecycledMediaEntity(
+    TrashMediaEntity(
         id = "img-2",
         mediaType = DuplicateGroupKey.MEDIA_IMAGE,
         originalMediaId = 2L,
@@ -496,7 +496,7 @@ private val previewRecycledItems = listOf(
         dateTaken = 1_700_000_100_000L,
         recycledAt = 1_710_000_100_000L
     ),
-    RecycledMediaEntity(
+    TrashMediaEntity(
         id = "vid-1",
         mediaType = DuplicateGroupKey.MEDIA_VIDEO,
         originalMediaId = 3L,
@@ -512,7 +512,7 @@ private val previewRecycledItems = listOf(
         dateTaken = 1_700_000_200_000L,
         recycledAt = 1_710_000_200_000L
     ),
-    RecycledMediaEntity(
+    TrashMediaEntity(
         id = "vid-2",
         mediaType = DuplicateGroupKey.MEDIA_VIDEO,
         originalMediaId = 4L,
@@ -532,11 +532,11 @@ private val previewRecycledItems = listOf(
 
 @Preview(showBackground = true, heightDp = 800, name = "Without All Files Access")
 @Composable
-private fun RecyclingStationScreenPreview() {
+private fun TrashScreenPreview() {
     PawlTheme {
-        RecyclingStationScreen(
-            uiState = RecyclingStationViewModel.UiState(
-                items = previewRecycledItems,
+        TrashScreen(
+            uiState = TrashViewModel.UiState(
+                items = previewTrashItems,
                 hasAllFilesAccess = false
             ),
             trashFilePath = { "" },
@@ -551,11 +551,11 @@ private fun RecyclingStationScreenPreview() {
 
 @Preview(showBackground = true, heightDp = 800, name = "With All Files Access")
 @Composable
-private fun RecyclingStationScreenWithAllFilesAccessPreview() {
+private fun TrashScreenWithAllFilesAccessPreview() {
     PawlTheme {
-        RecyclingStationScreen(
-            uiState = RecyclingStationViewModel.UiState(
-                items = previewRecycledItems,
+        TrashScreen(
+            uiState = TrashViewModel.UiState(
+                items = previewTrashItems,
                 hasAllFilesAccess = true
             ),
             trashFilePath = { "" },
@@ -570,12 +570,12 @@ private fun RecyclingStationScreenWithAllFilesAccessPreview() {
 
 @Preview(showBackground = true, heightDp = 800, name = "Images Filter")
 @Composable
-private fun RecyclingStationScreenImagesPreview() {
+private fun TrashScreenImagesPreview() {
     PawlTheme {
-        RecyclingStationScreen(
-            uiState = RecyclingStationViewModel.UiState(
-                items = previewRecycledItems,
-                filter = RecycleFilter.Images,
+        TrashScreen(
+            uiState = TrashViewModel.UiState(
+                items = previewTrashItems,
+                filter = TrashFilter.Images,
                 hasAllFilesAccess = true
             ),
             trashFilePath = { "" },
@@ -590,11 +590,11 @@ private fun RecyclingStationScreenImagesPreview() {
 
 @Preview(showBackground = true, heightDp = 800, name = "With Selection")
 @Composable
-private fun RecyclingStationScreenWithSelectionPreview() {
+private fun TrashScreenWithSelectionPreview() {
     PawlTheme {
-        RecyclingStationScreen(
-            uiState = RecyclingStationViewModel.UiState(
-                items = previewRecycledItems,
+        TrashScreen(
+            uiState = TrashViewModel.UiState(
+                items = previewTrashItems,
                 selectedIds = setOf("img-2"),
                 hasAllFilesAccess = true
             ),
@@ -610,10 +610,10 @@ private fun RecyclingStationScreenWithSelectionPreview() {
 
 @Preview(showBackground = true, heightDp = 800, name = "Empty")
 @Composable
-private fun RecyclingStationScreenEmptyPreview() {
+private fun TrashScreenEmptyPreview() {
     PawlTheme {
-        RecyclingStationScreen(
-            uiState = RecyclingStationViewModel.UiState(),
+        TrashScreen(
+            uiState = TrashViewModel.UiState(),
             trashFilePath = { "" },
             onFilterChange = {},
             onToggleSelection = {},

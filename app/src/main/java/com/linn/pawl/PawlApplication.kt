@@ -1,7 +1,7 @@
 package com.linn.pawl
 
 import android.app.Application
-import com.linn.pawl.data.repository.RecycledMediaRepository
+import com.linn.pawl.data.repository.TrashMediaRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,14 +13,14 @@ import javax.inject.Inject
 class PawlApplication : Application() {
 
     @Inject
-    lateinit var recycledMediaRepository: RecycledMediaRepository
+    lateinit var trashMediaRepository: TrashMediaRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         applicationScope.launch {
-            runCatching { recycledMediaRepository.purgeExpired() }
+            runCatching { trashMediaRepository.purgeExpired() }
         }
     }
 }

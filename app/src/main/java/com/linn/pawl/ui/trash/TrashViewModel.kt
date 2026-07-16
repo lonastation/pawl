@@ -1,12 +1,12 @@
-package com.linn.pawl.ui.recycle
+package com.linn.pawl.ui.trash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.linn.pawl.data.local.RecycledMediaEntity
+import com.linn.pawl.data.local.TrashMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
-import com.linn.pawl.data.repository.RecycleCandidate
-import com.linn.pawl.data.repository.RecycledMediaRepository
-import com.linn.pawl.data.repository.StagedRecycleItem
+import com.linn.pawl.data.repository.TrashCandidate
+import com.linn.pawl.data.repository.TrashMediaRepository
+import com.linn.pawl.data.repository.StagedTrashItem
 import com.linn.pawl.ui.image.ImageFile
 import com.linn.pawl.ui.video.VideoFile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,38 +16,38 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class RecycleFilter {
+enum class TrashFilter {
     All,
     Images,
     Videos
 }
 
 @HiltViewModel
-class RecyclingStationViewModel @Inject constructor(
-    private val recycledMediaRepository: RecycledMediaRepository
+class TrashViewModel @Inject constructor(
+    private val trashMediaRepository: TrashMediaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    private var pendingStaged: List<StagedRecycleItem> = emptyList()
+    private var pendingStaged: List<StagedTrashItem> = emptyList()
 
     fun load() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                val items = recycledMediaRepository.getAll()
+                val items = trashMediaRepository.getAll()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     items = items,
                     selectedIds = _uiState.value.selectedIds.intersect(items.map { it.id }.toSet()),
-                    hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
+                    hasAllFilesAccess = trashMediaRepository.hasAllFilesAccess()
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Failed to load recycling station",
-                    hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
+                    errorMessage = e.message ?: "Failed to load trash",
+                    hasAllFilesAccess = trashMediaRepository.hasAllFilesAccess()
                 )
             }
         }
@@ -55,11 +55,11 @@ class RecyclingStationViewModel @Inject constructor(
 
     fun refreshAllFilesAccess() {
         _uiState.value = _uiState.value.copy(
-            hasAllFilesAccess = recycledMediaRepository.hasAllFilesAccess()
+            hasAllFilesAccess = trashMediaRepository.hasAllFilesAccess()
         )
     }
 
-    fun setFilter(filter: RecycleFilter) {
+    fun setFilter(filter: TrashFilter) {
         _uiState.value = _uiState.value.copy(filter = filter)
     }
 
@@ -69,10 +69,10 @@ class RecyclingStationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedIds = updated)
     }
 
-    suspend fun stageImagesForRecycle(images: List<ImageFile>): List<StagedRecycleItem> {
-        val staged = recycledMediaRepository.stage(
+    suspend fun stageImagesForTrash(images: List<ImageFile>): List<StagedTrashItem> {
+        val staged = trashMediaRepository.stage(
             images.map { image ->
-                RecycleCandidate(
+                TrashCandidate(
                     contentUri = image.contentUri,
                     mediaType = DuplicateGroupKey.MEDIA_IMAGE,
                     originalMediaId = image.mediaId,
@@ -91,10 +91,10 @@ class RecyclingStationViewModel @Inject constructor(
         return staged
     }
 
-    suspend fun stageVideosForRecycle(videos: List<VideoFile>): List<StagedRecycleItem> {
-        val staged = recycledMediaRepository.stage(
+    suspend fun stageVideosForTrash(videos: List<VideoFile>): List<StagedTrashItem> {
+        val staged = trashMediaRepository.stage(
             videos.map { video ->
-                RecycleCandidate(
+                TrashCandidate(
                     contentUri = video.contentUri,
                     mediaType = DuplicateGroupKey.MEDIA_VIDEO,
                     originalMediaId = video.mediaId,
@@ -117,7 +117,7 @@ class RecyclingStationViewModel @Inject constructor(
         val staged = pendingStaged
         pendingStaged = emptyList()
         viewModelScope.launch {
-            recycledMediaRepository.commit(staged)
+            trashMediaRepository.commit(staged)
             load()
         }
     }
@@ -126,7 +126,7 @@ class RecyclingStationViewModel @Inject constructor(
         val staged = pendingStaged
         pendingStaged = emptyList()
         viewModelScope.launch {
-            recycledMediaRepository.abort(staged)
+            trashMediaRepository.abort(staged)
         }
     }
 
@@ -136,7 +136,7 @@ class RecyclingStationViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isBusy = true, errorMessage = null)
             try {
-                recycledMediaRepository.restore(ids)
+                trashMediaRepository.restore(ids)
                 _uiState.value = _uiState.value.copy(isBusy = false, selectedIds = emptySet())
                 load()
             } catch (e: Exception) {
@@ -154,7 +154,7 @@ class RecyclingStationViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isBusy = true, errorMessage = null)
             try {
-                recycledMediaRepository.permanentlyDelete(ids)
+                trashMediaRepository.permanentlyDelete(ids)
                 _uiState.value = _uiState.value.copy(isBusy = false, selectedIds = emptySet())
                 load()
             } catch (e: Exception) {
@@ -172,7 +172,7 @@ class RecyclingStationViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isBusy = true, errorMessage = null)
             try {
-                recycledMediaRepository.permanentlyDelete(ids)
+                trashMediaRepository.permanentlyDelete(ids)
                 _uiState.value = _uiState.value.copy(isBusy = false, selectedIds = emptySet())
                 load()
             } catch (e: Exception) {
@@ -184,29 +184,29 @@ class RecyclingStationViewModel @Inject constructor(
         }
     }
 
-    fun trashFilePath(entity: RecycledMediaEntity): String =
-        recycledMediaRepository.trashFileFor(entity).absolutePath
+    fun trashFilePath(entity: TrashMediaEntity): String =
+        trashMediaRepository.trashFileFor(entity).absolutePath
 
     data class UiState(
         val isLoading: Boolean = false,
         val isBusy: Boolean = false,
-        val items: List<RecycledMediaEntity> = emptyList(),
-        val filter: RecycleFilter = RecycleFilter.All,
+        val items: List<TrashMediaEntity> = emptyList(),
+        val filter: TrashFilter = TrashFilter.All,
         val selectedIds: Set<String> = emptySet(),
         val errorMessage: String? = null,
         val hasAllFilesAccess: Boolean = false
     ) {
-        val images: List<RecycledMediaEntity>
+        val images: List<TrashMediaEntity>
             get() = items.filter { it.mediaType == DuplicateGroupKey.MEDIA_IMAGE }
 
-        val videos: List<RecycledMediaEntity>
+        val videos: List<TrashMediaEntity>
             get() = items.filter { it.mediaType == DuplicateGroupKey.MEDIA_VIDEO }
 
-        val visibleItems: List<RecycledMediaEntity>
+        val visibleItems: List<TrashMediaEntity>
             get() = when (filter) {
-                RecycleFilter.All -> items
-                RecycleFilter.Images -> images
-                RecycleFilter.Videos -> videos
+                TrashFilter.All -> items
+                TrashFilter.Images -> images
+                TrashFilter.Videos -> videos
             }
     }
 }

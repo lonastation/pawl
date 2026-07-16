@@ -260,7 +260,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (hasAllFilesAccess) {
-                    "Recycled files can restore to their original folders."
+                    "Trash files can restore to their original folders."
                 } else {
                     "Without this, restore is limited to DCIM/Pictures/Movies."
                 },

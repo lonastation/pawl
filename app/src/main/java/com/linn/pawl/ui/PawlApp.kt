@@ -70,8 +70,8 @@ import com.linn.pawl.ui.image.ImageScannerScreen
 import com.linn.pawl.ui.image.ImageScannerViewModel
 import com.linn.pawl.ui.navigation.AppBottomNavigationBar
 import com.linn.pawl.ui.navigation.AppTab
-import com.linn.pawl.ui.recycle.RecyclingStationScreen
-import com.linn.pawl.ui.recycle.RecyclingStationViewModel
+import com.linn.pawl.ui.trash.TrashScreen
+import com.linn.pawl.ui.trash.TrashViewModel
 import com.linn.pawl.ui.settings.SettingsScreen
 import com.linn.pawl.ui.settings.SettingsViewModel
 import com.linn.pawl.ui.theme.AppBrown
@@ -89,12 +89,12 @@ fun PawlApp(
     videoViewModel: VideoScannerViewModel,
     imageViewModel: ImageScannerViewModel,
     settingsViewModel: SettingsViewModel,
-    recyclingStationViewModel: RecyclingStationViewModel
+    trashViewModel: TrashViewModel
 ) {
     val videoUiState by videoViewModel.uiState.collectAsStateWithLifecycle()
     val imageUiState by imageViewModel.uiState.collectAsStateWithLifecycle()
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    val recycleUiState by recyclingStationViewModel.uiState.collectAsStateWithLifecycle()
+    val trashUiState by trashViewModel.uiState.collectAsStateWithLifecycle()
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -104,7 +104,7 @@ fun PawlApp(
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             settingsViewModel.refreshAllFilesAccess()
-            recyclingStationViewModel.refreshAllFilesAccess()
+            trashViewModel.refreshAllFilesAccess()
         }
     }
 
@@ -152,10 +152,10 @@ fun PawlApp(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            recyclingStationViewModel.onMediaStoreDeleteConfirmed()
+            trashViewModel.onMediaStoreDeleteConfirmed()
             videoViewModel.onVideosDeleted(pendingVideoDeleteIds)
         } else {
-            recyclingStationViewModel.onMediaStoreDeleteCancelled()
+            trashViewModel.onMediaStoreDeleteCancelled()
         }
         pendingVideoDeleteIds = emptySet()
     }
@@ -164,17 +164,17 @@ fun PawlApp(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            recyclingStationViewModel.onMediaStoreDeleteConfirmed()
+            trashViewModel.onMediaStoreDeleteConfirmed()
             imageViewModel.onImagesDeleted(pendingImageDeleteIds)
         } else {
-            recyclingStationViewModel.onMediaStoreDeleteCancelled()
+            trashViewModel.onMediaStoreDeleteCancelled()
         }
         pendingImageDeleteIds = emptySet()
     }
 
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Video) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var showRecycle by rememberSaveable { mutableStateOf(false) }
+    var showTrash by rememberSaveable { mutableStateOf(false) }
     var selectedVideoId by remember { mutableLongStateOf(-1L) }
     var selectedImageId by remember { mutableLongStateOf(-1L) }
     val videoListState = rememberLazyListState()
@@ -186,9 +186,9 @@ fun PawlApp(
         }
     }
 
-    LaunchedEffect(showRecycle) {
-        if (showRecycle) {
-            recyclingStationViewModel.load()
+    LaunchedEffect(showTrash) {
+        if (showTrash) {
+            trashViewModel.load()
         }
     }
 
@@ -254,18 +254,18 @@ fun PawlApp(
             hasAllFilesAccess = settingsUiState.hasAllFilesAccess,
             onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) }
         )
-    } else if (showRecycle) {
-        BackHandler { showRecycle = false }
-        RecyclingStationScreen(
-            uiState = recycleUiState,
-            trashFilePath = recyclingStationViewModel::trashFilePath,
-            onFilterChange = recyclingStationViewModel::setFilter,
-            onToggleSelection = recyclingStationViewModel::toggleSelection,
-            onRestoreSelected = recyclingStationViewModel::restoreSelected,
-            onPermanentlyDeleteSelected = recyclingStationViewModel::permanentlyDeleteSelected,
-            onPermanentlyDeleteAll = recyclingStationViewModel::permanentlyDeleteAll,
+    } else if (showTrash) {
+        BackHandler { showTrash = false }
+        TrashScreen(
+            uiState = trashUiState,
+            trashFilePath = trashViewModel::trashFilePath,
+            onFilterChange = trashViewModel::setFilter,
+            onToggleSelection = trashViewModel::toggleSelection,
+            onRestoreSelected = trashViewModel::restoreSelected,
+            onPermanentlyDeleteSelected = trashViewModel::permanentlyDeleteSelected,
+            onPermanentlyDeleteAll = trashViewModel::permanentlyDeleteAll,
             onRequestAllFilesAccess = { openManageAllFilesAccessSettings(context) },
-            onBack = { showRecycle = false },
+            onBack = { showTrash = false },
         )
     } else {
         val drawerWidth = with(LocalDensity.current) {
@@ -286,7 +286,7 @@ fun PawlApp(
                     onRecentlyDeletedClick = {
                         scope.launch {
                             drawerState.close()
-                            showRecycle = true
+                            showTrash = true
                         }
                     },
                     onSettingsClick = {
@@ -326,7 +326,7 @@ fun PawlApp(
                             if (videos.isEmpty()) return@VideoScannerScreen
                             scope.launch {
                                 try {
-                                    val staged = recyclingStationViewModel.stageVideosForRecycle(videos)
+                                    val staged = trashViewModel.stageVideosForTrash(videos)
                                     if (staged.isEmpty()) return@launch
                                     pendingVideoDeleteIds = videos.map { it.mediaId }.toSet()
                                     val intentSender = MediaStore.createDeleteRequest(
@@ -337,7 +337,7 @@ fun PawlApp(
                                         IntentSenderRequest.Builder(intentSender).build()
                                     )
                                 } catch (_: Exception) {
-                                    recyclingStationViewModel.onMediaStoreDeleteCancelled()
+                                    trashViewModel.onMediaStoreDeleteCancelled()
                                     pendingVideoDeleteIds = emptySet()
                                 }
                             }
@@ -357,7 +357,7 @@ fun PawlApp(
                             if (images.isEmpty()) return@ImageScannerScreen
                             scope.launch {
                                 try {
-                                    val staged = recyclingStationViewModel.stageImagesForRecycle(images)
+                                    val staged = trashViewModel.stageImagesForTrash(images)
                                     if (staged.isEmpty()) return@launch
                                     pendingImageDeleteIds = images.map { it.mediaId }.toSet()
                                     val intentSender = MediaStore.createDeleteRequest(
@@ -368,7 +368,7 @@ fun PawlApp(
                                         IntentSenderRequest.Builder(intentSender).build()
                                     )
                                 } catch (_: Exception) {
-                                    recyclingStationViewModel.onMediaStoreDeleteCancelled()
+                                    trashViewModel.onMediaStoreDeleteCancelled()
                                     pendingImageDeleteIds = emptySet()
                                 }
                             }

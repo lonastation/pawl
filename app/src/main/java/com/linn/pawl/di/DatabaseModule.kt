@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.linn.pawl.data.local.IgnoredDuplicateGroupDao
 import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.PawlDatabase
-import com.linn.pawl.data.local.RecycledMediaDao
+import com.linn.pawl.data.local.TrashMediaDao
 import com.linn.pawl.data.local.VideoSignatureDao
 import dagger.Module
 import dagger.Provides
@@ -53,7 +53,7 @@ object DatabaseModule {
             db.execSQL(
                 "ALTER TABLE image_signatures ADD COLUMN pHash INTEGER NOT NULL DEFAULT 0"
             )
-            // Old dHash used a coarser, aspect-stretching algorithm ‚Äî force recompute.
+            // Old dHash used a coarser, aspect-stretching algorithm ù?force recompute.
             db.execSQL("DELETE FROM image_signatures")
         }
     }
@@ -99,6 +99,12 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE recycled_media RENAME TO trash_media")
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -114,7 +120,8 @@ object DatabaseModule {
                 MIGRATION_2_3,
                 MIGRATION_3_4,
                 MIGRATION_4_5,
-                MIGRATION_5_6
+                MIGRATION_5_6,
+                MIGRATION_6_7
             )
             .build()
     }
@@ -135,7 +142,7 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideRecycledMediaDao(database: PawlDatabase): RecycledMediaDao {
-        return database.recycledMediaDao()
+    fun provideTrashMediaDao(database: PawlDatabase): TrashMediaDao {
+        return database.trashMediaDao()
     }
 }
