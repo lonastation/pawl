@@ -5,9 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,11 +70,12 @@ fun VideoDetailScreen(
                         text = video.name,
                         fontSize = 18.sp,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.offset(y = 8.dp)
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.offset(y = 8.dp)) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -83,7 +86,8 @@ fun VideoDetailScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                ),
+                windowInsets = WindowInsets(top = 18.dp)
             )
         }
     ) { innerPadding ->
@@ -108,7 +112,10 @@ fun VideoDetailScreen(
                 DetailInfoRow(label = "File Path", value = formatPathForDisplay(video.path))
                 DetailInfoRow(label = "File Size", value = formatFileSize(video.size))
                 DetailInfoRow(label = "Created", value = formatDateTime(video.dateCreated))
-                DetailInfoRow(label = "Aspect Ratio", value = formatAspectRatio(video.width, video.height))
+                DetailInfoRow(
+                    label = "Aspect Ratio",
+                    value = formatAspectRatio(video.width, video.height)
+                )
                 DetailInfoRow(label = "Duration", value = formatDuration(video.duration))
             }
         }
