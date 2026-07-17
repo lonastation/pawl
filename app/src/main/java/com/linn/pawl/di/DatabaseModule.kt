@@ -53,7 +53,7 @@ object DatabaseModule {
             db.execSQL(
                 "ALTER TABLE image_signatures ADD COLUMN pHash INTEGER NOT NULL DEFAULT 0"
             )
-            // Old dHash used a coarser, aspect-stretching algorithm ù?force recompute.
+            // Old dHash used a coarser, aspect-stretching algorithm ÔøΩ?force recompute.
             db.execSQL("DELETE FROM image_signatures")
         }
     }
