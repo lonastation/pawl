@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,11 +34,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.linn.pawl.R
+import com.linn.pawl.data.model.DuplicateGroupKey
 import com.linn.pawl.data.model.ScanLogEntry
 import com.linn.pawl.data.model.ScanLogLevel
+import com.linn.pawl.ui.theme.AppBrown
+import com.linn.pawl.ui.theme.AppLightBrown
+import com.linn.pawl.ui.theme.AppWhite
+import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatDateTime
 import com.linn.pawl.ui.util.formatPathForDisplay
 
@@ -52,19 +61,30 @@ fun ScanLogsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.scan_logs_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.brand_name),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.offset(y = 8.dp)
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.offset(y = 8.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = onClearLogs,
-                        enabled = uiState.totalCount > 0
+                        enabled = uiState.totalCount > 0,
+                        modifier = Modifier.offset(y = 8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
@@ -73,8 +93,12 @@ fun ScanLogsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                windowInsets = WindowInsets(top = 18.dp)
             )
         }
     ) { innerPadding ->
@@ -83,21 +107,41 @@ fun ScanLogsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            val filterChipColors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = AppBrown,
+                selectedLabelColor = AppWhite,
+                labelColor = AppBrown,
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 12.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
                     selected = uiState.filter == ScanLogFilter.All,
                     onClick = { onFilterChange(ScanLogFilter.All) },
-                    label = { Text(stringResource(R.string.scan_logs_filter_all)) }
+                    label = { Text(stringResource(R.string.scan_logs_filter_all)) },
+                    colors = filterChipColors,
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = uiState.filter == ScanLogFilter.All,
+                        borderColor = AppLightBrown,
+                        selectedBorderColor = AppBrown,
+                    )
                 )
                 FilterChip(
                     selected = uiState.filter == ScanLogFilter.Errors,
                     onClick = { onFilterChange(ScanLogFilter.Errors) },
-                    label = { Text(stringResource(R.string.scan_logs_filter_errors)) }
+                    label = { Text(stringResource(R.string.scan_logs_filter_errors)) },
+                    colors = filterChipColors,
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = uiState.filter == ScanLogFilter.Errors,
+                        borderColor = AppLightBrown,
+                        selectedBorderColor = AppBrown,
+                    )
                 )
             }
 
@@ -201,5 +245,114 @@ private fun ScanLogRow(
                 color = MaterialTheme.colorScheme.primary
             )
         }
+    }
+}
+
+private val previewScanLogs = listOf(
+    ScanLogEntry(
+        id = 1L,
+        timestamp = 1_720_000_000_000L,
+        mediaType = DuplicateGroupKey.MEDIA_IMAGE,
+        level = ScanLogLevel.ERROR,
+        path = "/storage/emulated/0/DCIM/Camera/IMG_corrupt.jpg",
+        message = "Skipped image while extracting signature",
+        detail = "java.io.IOException: broken JPEG\n\tat com.linn.pawl.service.ImageScanner.extractSignature(ImageScanner.kt:140)"
+    ),
+    ScanLogEntry(
+        id = 2L,
+        timestamp = 1_720_000_100_000L,
+        mediaType = DuplicateGroupKey.MEDIA_VIDEO,
+        level = ScanLogLevel.WARN,
+        path = "/storage/emulated/0/Movies/Downloads/clip_incomplete.mp4",
+        message = "Failed to extract video frame hashes",
+        detail = "java.lang.RuntimeException: setDataSource failed\n\tat android.media.MediaMetadataRetriever.setDataSource(MediaMetadataRetriever.java:200)"
+    ),
+    ScanLogEntry(
+        id = 3L,
+        timestamp = 1_720_000_200_000L,
+        mediaType = DuplicateGroupKey.MEDIA_IMAGE,
+        level = ScanLogLevel.ERROR,
+        path = null,
+        message = "Image scan aborted",
+        detail = "java.lang.IllegalStateException: Content resolver query failed\n\tat com.linn.pawl.ui.image.ImageScannerViewModel.runScan(ImageScannerViewModel.kt:105)"
+    ),
+    ScanLogEntry(
+        id = 4L,
+        timestamp = 1_720_000_300_000L,
+        mediaType = DuplicateGroupKey.MEDIA_VIDEO,
+        level = ScanLogLevel.INFO,
+        path = "/storage/emulated/0/DCIM/Camera/VID_20260315.mp4",
+        message = "Video scan aborted",
+        detail = null
+    ),
+)
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+private fun ScanLogsScreenPreview() {
+    PawlTheme {
+        ScanLogsScreen(
+            uiState = ScanLogsViewModel.UiState(
+                logs = previewScanLogs,
+                filter = ScanLogFilter.All,
+                totalCount = previewScanLogs.size
+            ),
+            onBack = {},
+            onFilterChange = {},
+            onToggleExpanded = {},
+            onClearLogs = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "Empty")
+@Composable
+private fun ScanLogsScreenEmptyPreview() {
+    PawlTheme {
+        ScanLogsScreen(
+            uiState = ScanLogsViewModel.UiState(),
+            onBack = {},
+            onFilterChange = {},
+            onToggleExpanded = {},
+            onClearLogs = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "Errors filter")
+@Composable
+private fun ScanLogsScreenErrorsPreview() {
+    val errors = previewScanLogs.filter { it.level == ScanLogLevel.ERROR }
+    PawlTheme {
+        ScanLogsScreen(
+            uiState = ScanLogsViewModel.UiState(
+                logs = errors,
+                filter = ScanLogFilter.Errors,
+                totalCount = previewScanLogs.size
+            ),
+            onBack = {},
+            onFilterChange = {},
+            onToggleExpanded = {},
+            onClearLogs = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800, name = "Expanded detail")
+@Composable
+private fun ScanLogsScreenExpandedPreview() {
+    PawlTheme {
+        ScanLogsScreen(
+            uiState = ScanLogsViewModel.UiState(
+                logs = previewScanLogs,
+                filter = ScanLogFilter.All,
+                expandedIds = setOf(1L),
+                totalCount = previewScanLogs.size
+            ),
+            onBack = {},
+            onFilterChange = {},
+            onToggleExpanded = {},
+            onClearLogs = {},
+        )
     }
 }
