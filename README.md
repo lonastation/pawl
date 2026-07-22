@@ -29,6 +29,11 @@ It targets Android users with large media libraries who want a private, offline 
 - Clear ignored duplicate groups
 - Optional **All files access** for restoring media to original folders (without it, restore falls back to app-managed Pictures/Movies paths)
 
+### Scan logs
+- Review exceptions and skip reasons from image and video scans (corrupt files, frame extract failures, aborted scans, and similar)
+- Entries are stored locally in Room (newest first), capped at **500** rows
+- Open from the navigation drawer; filter by All / Errors, expand a row for stack-trace details, or clear the log
+
 ---
 
 ## How detection works
