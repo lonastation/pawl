@@ -7,6 +7,12 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+fun gitVersionCode(): Int = runCatching {
+    providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+    }.standardOutput.asText.get().trim().toInt()
+}.getOrDefault(1)
+
 android {
     namespace = "com.linn.pawl"
     compileSdk = 37
@@ -15,7 +21,7 @@ android {
         applicationId = "com.linn.pawl"
         minSdk = 35
         targetSdk = 36
-        versionCode = 2
+        versionCode = gitVersionCode()
         versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
