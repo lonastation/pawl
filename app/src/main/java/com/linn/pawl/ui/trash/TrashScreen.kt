@@ -154,7 +154,7 @@ fun TrashScreen(
                         onClick = onPermanentlyDeleteAll,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp),
+                            .height(52.dp),
                         shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AppRed,
