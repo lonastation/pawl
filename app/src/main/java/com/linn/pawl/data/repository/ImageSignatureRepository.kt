@@ -2,8 +2,8 @@ package com.linn.pawl.data.repository
 
 import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.ImageSignatureEntity
+import com.linn.pawl.data.model.ImageMedia
 import com.linn.pawl.data.model.ImageSignature
-import com.linn.pawl.ui.image.ImageFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,7 +12,7 @@ class ImageSignatureRepository @Inject constructor(
     private val dao: ImageSignatureDao
 ) {
 
-    suspend fun getCachedBatch(images: List<ImageFile>): Map<String, ImageSignature> {
+    suspend fun getCachedBatch(images: List<ImageMedia>): Map<String, ImageSignature> {
         if (images.isEmpty()) return emptyMap()
 
         val imageByPath = images.associateBy { it.path }
@@ -27,7 +27,7 @@ class ImageSignatureRepository @Inject constructor(
         }.toMap()
     }
 
-    suspend fun save(image: ImageFile, signature: ImageSignature) {
+    suspend fun save(image: ImageMedia, signature: ImageSignature) {
         dao.upsert(image.toEntity(signature))
     }
 
@@ -52,7 +52,7 @@ class ImageSignatureRepository @Inject constructor(
 
     suspend fun getCount(): Int = dao.count()
 
-    private fun isCacheValid(entity: ImageSignatureEntity, image: ImageFile): Boolean {
+    private fun isCacheValid(entity: ImageSignatureEntity, image: ImageMedia): Boolean {
         return entity.md5.isNotEmpty() &&
             entity.fileName == image.name &&
             entity.lastModified == image.lastModified &&
@@ -69,7 +69,7 @@ class ImageSignatureRepository @Inject constructor(
         )
     }
 
-    private fun ImageFile.toEntity(signature: ImageSignature): ImageSignatureEntity {
+    private fun ImageMedia.toEntity(signature: ImageSignature): ImageSignatureEntity {
         return ImageSignatureEntity(
             path = path,
             fileName = name,

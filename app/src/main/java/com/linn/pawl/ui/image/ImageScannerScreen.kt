@@ -51,12 +51,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import com.linn.pawl.R
+import com.linn.pawl.data.model.ImageDuplicateGroup
+import com.linn.pawl.data.model.ImageMedia
 import com.linn.pawl.ui.navigation.AppBottomNavigationBar
 import com.linn.pawl.ui.navigation.AppTab
 import com.linn.pawl.ui.theme.AppWhite
@@ -75,7 +79,7 @@ fun ImageScannerScreen(
     listState: LazyListState = rememberLazyListState(),
     onFindSimilarClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
-    onImageClick: (ImageFile) -> Unit = {},
+    onImageClick: (ImageMedia) -> Unit = {},
     onIgnoreGroup: (ImageDuplicateGroup) -> Unit = {},
     onDeleteSelected: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
@@ -91,7 +95,7 @@ fun ImageScannerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "VM-LIKE",
+                        text = stringResource(R.string.brand_name),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.offset(y = 8.dp)
@@ -104,7 +108,7 @@ fun ImageScannerScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "Open navigation drawer"
+                            contentDescription = stringResource(R.string.cd_open_drawer)
                         )
                     }
                 },
@@ -149,9 +153,15 @@ fun ImageScannerScreen(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scanning... ${uiState.scannedCount}/${uiState.totalImages}")
+                        Text(
+                            stringResource(
+                                R.string.scan_progress,
+                                uiState.scannedCount,
+                                uiState.totalImages
+                            )
+                        )
                     } else {
-                        Text("Find Similar", fontSize = 18.sp)
+                        Text(stringResource(R.string.scan_find_similar), fontSize = 18.sp)
                     }
                 }
 
@@ -170,7 +180,7 @@ fun ImageScannerScreen(
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Total", fontSize = 12.sp)
+                                Text(stringResource(R.string.label_total), fontSize = 12.sp)
                                 Text(
                                     "${uiState.totalImages}",
                                     fontSize = 20.sp,
@@ -178,7 +188,7 @@ fun ImageScannerScreen(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Group", fontSize = 12.sp)
+                                Text(stringResource(R.string.label_group), fontSize = 12.sp)
                                 Text(
                                     "${uiState.duplicateGroups.size}",
                                     fontSize = 20.sp,
@@ -186,7 +196,7 @@ fun ImageScannerScreen(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Duplicate", fontSize = 12.sp)
+                                Text(stringResource(R.string.label_duplicate), fontSize = 12.sp)
                                 Text(
                                     "${uiState.totalDuplicates}",
                                     fontSize = 20.sp,
@@ -234,7 +244,10 @@ fun ImageScannerScreen(
                     )
                 ) {
                     Text(
-                        text = "Move to trash (${uiState.selectedImageIds.size})",
+                        text = stringResource(
+                            R.string.scan_move_to_trash,
+                            uiState.selectedImageIds.size
+                        ),
                         fontSize = 18.sp
                     )
                 }
@@ -248,13 +261,13 @@ fun ImageDuplicateGroupCard(
     group: ImageDuplicateGroup,
     selectedImageIds: Set<Long> = emptySet(),
     onToggleSelection: (Long) -> Unit = {},
-    onImageClick: (ImageFile) -> Unit = {},
+    onImageClick: (ImageMedia) -> Unit = {},
     onIgnoreGroup: () -> Unit = {}
 ) {
     val groupLabel = if (group.images.any { it.isGif }) {
-        "Similar Gif(${group.images.size})"
+        stringResource(R.string.scan_similar_gif_group, group.images.size)
     } else {
-        "Similar Image(${group.images.size})"
+        stringResource(R.string.scan_similar_image_group, group.images.size)
     }
 
     Card(
@@ -279,7 +292,7 @@ fun ImageDuplicateGroupCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 TextButton(onClick = onIgnoreGroup) {
-                    Text("Ignore")
+                    Text(stringResource(R.string.action_ignore))
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -372,7 +385,7 @@ private fun ImageThumbnail(
 private val previewDuplicateGroups = listOf(
     ImageDuplicateGroup(
         images = listOf(
-            ImageFile(
+            ImageMedia(
                 mediaId = 1L,
                 contentUri = "content://media/external/images/media/1".toUri(),
                 path = "/storage/emulated/0/DCIM/Camera/photo.jpg",
@@ -381,7 +394,7 @@ private val previewDuplicateGroups = listOf(
                 width = 4032,
                 height = 3024
             ),
-            ImageFile(
+            ImageMedia(
                 mediaId = 2L,
                 contentUri = "content://media/external/images/media/2".toUri(),
                 path = "/storage/emulated/0/Pictures/photo_copy.jpg",
@@ -394,7 +407,7 @@ private val previewDuplicateGroups = listOf(
     ),
     ImageDuplicateGroup(
         images = listOf(
-            ImageFile(
+            ImageMedia(
                 mediaId = 3L,
                 contentUri = "content://media/external/images/media/3".toUri(),
                 path = "/storage/emulated/0/DCIM/Screenshots/Screenshot_20260315.png",
@@ -403,7 +416,7 @@ private val previewDuplicateGroups = listOf(
                 width = 1080,
                 height = 2400
             ),
-            ImageFile(
+            ImageMedia(
                 mediaId = 4L,
                 contentUri = "content://media/external/images/media/4".toUri(),
                 path = "/storage/emulated/0/Pictures/Screenshot_20260315 (1).png",
@@ -412,7 +425,7 @@ private val previewDuplicateGroups = listOf(
                 width = 1080,
                 height = 2400
             ),
-            ImageFile(
+            ImageMedia(
                 mediaId = 5L,
                 contentUri = "content://media/external/images/media/5".toUri(),
                 path = "/storage/emulated/0/Download/Screenshot_20260315_copy.png",
@@ -425,7 +438,7 @@ private val previewDuplicateGroups = listOf(
     ),
     ImageDuplicateGroup(
         images = listOf(
-            ImageFile(
+            ImageMedia(
                 mediaId = 6L,
                 contentUri = "content://media/external/images/media/6".toUri(),
                 path = "/storage/emulated/0/DCIM/Camera/IMG_20260201_143022.jpg",
@@ -434,7 +447,7 @@ private val previewDuplicateGroups = listOf(
                 width = 4000,
                 height = 3000
             ),
-            ImageFile(
+            ImageMedia(
                 mediaId = 7L,
                 contentUri = "content://media/external/images/media/7".toUri(),
                 path = "/storage/emulated/0/DCIM/Camera/IMG_20260201_143023.jpg",

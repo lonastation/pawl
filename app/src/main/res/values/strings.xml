@@ -1,5 +1,94 @@
 <resources>
     <string name="app_name">PawL</string>
+    <string name="brand_name">VM-LIKE</string>
     <string name="service_description">service_description</string>
     <string name="aid_description">aid_description</string>
+
+    <!-- Common -->
+    <string name="action_back">Back</string>
+    <string name="action_ignore">Ignore</string>
+    <string name="cd_open_drawer">Open navigation drawer</string>
+    <string name="label_video">Video</string>
+    <string name="label_image">Image</string>
+    <string name="label_total">Total</string>
+    <string name="label_group">Group</string>
+    <string name="label_duplicate">Duplicate</string>
+    <string name="label_file_name">File Name</string>
+    <string name="label_file_path">File Path</string>
+    <string name="label_file_size">File Size</string>
+    <string name="label_created">Created</string>
+    <string name="label_dimensions">Dimensions</string>
+    <string name="label_aspect_ratio">Aspect Ratio</string>
+    <string name="label_duration">Duration</string>
+    <string name="dimensions_format">%1$d × %2$d</string>
+    <string name="loading">Loading…</string>
+
+    <!-- Navigation -->
+    <string name="nav_scan_logs">Scan logs</string>
+    <string name="nav_recently_deleted">Recently deleted</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_video">Video</string>
+    <string name="nav_image">Image</string>
+
+    <!-- Scanner -->
+    <string name="scan_start">Start Scanning</string>
+    <string name="scan_find_similar">Find Similar</string>
+    <string name="scan_progress">Scanning… %1$d/%2$d</string>
+    <string name="scan_move_to_trash">Move to trash (%1$d)</string>
+    <string name="scan_duplicate_group">Duplicate Group(%1$d)</string>
+    <string name="scan_similar_image_group">Similar Image(%1$d)</string>
+    <string name="scan_similar_gif_group">Similar Gif(%1$d)</string>
+
+    <!-- Detail -->
+    <!-- (labels above) -->
+
+    <!-- Trash -->
+    <string name="trash_empty">Trash is empty</string>
+    <string name="trash_filter_all">All</string>
+    <string name="trash_filter_images">Images</string>
+    <string name="trash_filter_videos">Videos</string>
+    <string name="trash_section_images">Images (%1$d)</string>
+    <string name="trash_section_videos">Videos (%1$d)</string>
+    <string name="trash_access_banner">All files access is off. Restore may land in Pictures/Movies instead of the original folder.</string>
+    <string name="trash_grant_access">Grant All Files Access</string>
+    <string name="trash_delete_all">Delete All</string>
+    <string name="trash_restore_selected">Restore (%1$d)</string>
+    <string name="trash_delete_selected">Delete (%1$d)</string>
+    <string name="trash_load_failed">Failed to load trash</string>
+    <string name="trash_restore_failed">Failed to restore</string>
+    <string name="trash_delete_failed">Failed to delete</string>
+
+    <!-- Settings -->
+    <string name="settings_section_video">Video</string>
+    <string name="settings_section_image">Image</string>
+    <string name="settings_section_storage">Storage</string>
+    <string name="settings_cached_fingerprints">Cached fingerprints: %1$d</string>
+    <string name="settings_ignored_groups">Ignored groups: %1$d</string>
+    <string name="settings_regenerate_video_desc">Clear cached fingerprints and rescan all videos.</string>
+    <string name="settings_regenerate_image_desc">Clear cached fingerprints and rescan all images.</string>
+    <string name="settings_clear_ignored_video_desc">Show ignored video groups again on the next scan.</string>
+    <string name="settings_clear_ignored_image_desc">Show ignored image groups again on the next scan.</string>
+    <string name="settings_regenerate_video">Regenerate Video Fingerprints</string>
+    <string name="settings_regenerate_image">Regenerate Image Fingerprints</string>
+    <string name="settings_clear_ignored_video">Clear Ignored Video Groups</string>
+    <string name="settings_clear_ignored_image">Clear Ignored Image Groups</string>
+    <string name="settings_access_granted">All files access: granted</string>
+    <string name="settings_access_not_granted">All files access: not granted</string>
+    <string name="settings_access_granted_desc">Trash files can restore to their original folders.</string>
+    <string name="settings_access_not_granted_desc">Without this, restore is limited to DCIM/Pictures/Movies.</string>
+    <string name="settings_grant_access">Grant All Files Access</string>
+
+    <!-- Scan logs -->
+    <string name="scan_logs_title">Scan logs</string>
+    <string name="scan_logs_clear">Clear logs</string>
+    <string name="scan_logs_empty">No scan logs yet</string>
+    <string name="scan_logs_filter_all">All</string>
+    <string name="scan_logs_filter_errors">Errors</string>
+    <string name="scan_logs_tap_details">Tap for exception details</string>
+    <string name="scan_log_image_aborted">Image scan aborted</string>
+    <string name="scan_log_video_aborted">Video scan aborted</string>
+    <string name="scan_log_image_signature_failed">Skipped image while extracting signature</string>
+    <string name="scan_log_video_signature_failed">Skipped video while extracting signature</string>
+    <string name="scan_log_video_frames_failed">Failed to extract video frame hashes</string>
+    <string name="media_name_unknown">unknown</string>
 </resources>

@@ -1,15 +1,18 @@
 package com.linn.pawl.ui.trash
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.R
 import com.linn.pawl.data.local.TrashMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
+import com.linn.pawl.data.model.ImageMedia
+import com.linn.pawl.data.model.VideoMedia
 import com.linn.pawl.data.repository.TrashCandidate
 import com.linn.pawl.data.repository.TrashMediaRepository
 import com.linn.pawl.data.repository.StagedTrashItem
-import com.linn.pawl.ui.image.ImageFile
-import com.linn.pawl.ui.video.VideoFile
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +27,7 @@ enum class TrashFilter {
 
 @HiltViewModel
 class TrashViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val trashMediaRepository: TrashMediaRepository
 ) : ViewModel() {
 
@@ -46,7 +50,7 @@ class TrashViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = e.message ?: "Failed to load trash",
+                    errorMessage = e.message ?: context.getString(R.string.trash_load_failed),
                     hasAllFilesAccess = trashMediaRepository.hasAllFilesAccess()
                 )
             }
@@ -69,7 +73,7 @@ class TrashViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedIds = updated)
     }
 
-    suspend fun stageImagesForTrash(images: List<ImageFile>): List<StagedTrashItem> {
+    suspend fun stageImagesForTrash(images: List<ImageMedia>): List<StagedTrashItem> {
         val staged = trashMediaRepository.stage(
             images.map { image ->
                 TrashCandidate(
@@ -91,7 +95,7 @@ class TrashViewModel @Inject constructor(
         return staged
     }
 
-    suspend fun stageVideosForTrash(videos: List<VideoFile>): List<StagedTrashItem> {
+    suspend fun stageVideosForTrash(videos: List<VideoMedia>): List<StagedTrashItem> {
         val staged = trashMediaRepository.stage(
             videos.map { video ->
                 TrashCandidate(
@@ -142,7 +146,7 @@ class TrashViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isBusy = false,
-                    errorMessage = e.message ?: "Failed to restore"
+                    errorMessage = e.message ?: context.getString(R.string.trash_restore_failed)
                 )
             }
         }
@@ -160,7 +164,7 @@ class TrashViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isBusy = false,
-                    errorMessage = e.message ?: "Failed to delete"
+                    errorMessage = e.message ?: context.getString(R.string.trash_delete_failed)
                 )
             }
         }
@@ -178,7 +182,7 @@ class TrashViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isBusy = false,
-                    errorMessage = e.message ?: "Failed to delete"
+                    errorMessage = e.message ?: context.getString(R.string.trash_delete_failed)
                 )
             }
         }

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import com.linn.pawl.ui.PawlApp
 import com.linn.pawl.ui.image.ImageScannerViewModel
 import com.linn.pawl.ui.trash.TrashViewModel
+import com.linn.pawl.ui.scanlog.ScanLogsViewModel
 import com.linn.pawl.ui.settings.SettingsViewModel
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.video.VideoScannerViewModel
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
     private val imageViewModel: ImageScannerViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
     private val trashViewModel: TrashViewModel by viewModels()
+    private val scanLogsViewModel: ScanLogsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -42,7 +44,8 @@ class MainActivity : ComponentActivity() {
                         videoViewModel = videoViewModel,
                         imageViewModel = imageViewModel,
                         settingsViewModel = settingsViewModel,
-                        trashViewModel = trashViewModel
+                        trashViewModel = trashViewModel,
+                        scanLogsViewModel = scanLogsViewModel,
                     )
                 }
             }

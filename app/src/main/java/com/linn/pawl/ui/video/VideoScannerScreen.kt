@@ -51,12 +51,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import com.linn.pawl.R
+import com.linn.pawl.data.model.VideoDuplicateGroup
+import com.linn.pawl.data.model.VideoMedia
 import com.linn.pawl.ui.theme.AppWhite
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatAspectRatio
@@ -74,8 +78,8 @@ fun VideoScannerScreen(
     listState: LazyListState = rememberLazyListState(),
     onScanClick: () -> Unit,
     onToggleSelection: (Long) -> Unit = {},
-    onVideoClick: (VideoFile) -> Unit = {},
-    onIgnoreGroup: (DuplicateGroup) -> Unit = {},
+    onVideoClick: (VideoMedia) -> Unit = {},
+    onIgnoreGroup: (VideoDuplicateGroup) -> Unit = {},
     onDeleteSelected: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
 ) {
@@ -89,7 +93,7 @@ fun VideoScannerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "VM-LIKE",
+                        text = stringResource(R.string.brand_name),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.offset(y = 8.dp)
@@ -102,7 +106,7 @@ fun VideoScannerScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "Open navigation drawer"
+                            contentDescription = stringResource(R.string.cd_open_drawer)
                         )
                     }
                 },
@@ -146,9 +150,15 @@ fun VideoScannerScreen(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scanning... ${uiState.scannedCount}/${uiState.totalVideos}")
+                        Text(
+                            stringResource(
+                                R.string.scan_progress,
+                                uiState.scannedCount,
+                                uiState.totalVideos
+                            )
+                        )
                     } else {
-                        Text("Start Scanning", fontSize = 18.sp)
+                        Text(stringResource(R.string.scan_start), fontSize = 18.sp)
                     }
                 }
 
@@ -167,7 +177,7 @@ fun VideoScannerScreen(
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Total", fontSize = 12.sp)
+                                Text(stringResource(R.string.label_total), fontSize = 12.sp)
                                 Text(
                                     "${uiState.totalVideos}",
                                     fontSize = 20.sp,
@@ -175,7 +185,7 @@ fun VideoScannerScreen(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Group", fontSize = 12.sp)
+                                Text(stringResource(R.string.label_group), fontSize = 12.sp)
                                 Text(
                                     "${uiState.duplicateGroups.size}",
                                     fontSize = 20.sp,
@@ -183,7 +193,7 @@ fun VideoScannerScreen(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("Duplicate", fontSize = 12.sp)
+                                Text(stringResource(R.string.label_duplicate), fontSize = 12.sp)
                                 Text(
                                     "${uiState.totalDuplicates}",
                                     fontSize = 20.sp,
@@ -231,7 +241,10 @@ fun VideoScannerScreen(
                     )
                 ) {
                     Text(
-                        text = "Move to trash (${uiState.selectedVideoIds.size})",
+                        text = stringResource(
+                            R.string.scan_move_to_trash,
+                            uiState.selectedVideoIds.size
+                        ),
                         fontSize = 18.sp
                     )
                 }
@@ -242,10 +255,10 @@ fun VideoScannerScreen(
 
 @Composable
 fun VideoDuplicateGroupCard(
-    group: DuplicateGroup,
+    group: VideoDuplicateGroup,
     selectedVideoIds: Set<Long> = emptySet(),
     onToggleSelection: (Long) -> Unit = {},
-    onVideoClick: (VideoFile) -> Unit = {},
+    onVideoClick: (VideoMedia) -> Unit = {},
     onIgnoreGroup: () -> Unit = {}
 ) {
     Card(
@@ -264,13 +277,13 @@ fun VideoDuplicateGroupCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Duplicate Group(${group.videos.size})",
+                    text = stringResource(R.string.scan_duplicate_group, group.videos.size),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
                 TextButton(onClick = onIgnoreGroup) {
-                    Text("Ignore")
+                    Text(stringResource(R.string.action_ignore))
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -365,9 +378,9 @@ private fun VideoThumbnail(
     }
 }
 
-private val previewDuplicateGroup = DuplicateGroup(
+private val previewVideoDuplicateGroup = VideoDuplicateGroup(
     videos = listOf(
-        VideoFile(
+        VideoMedia(
             mediaId = 1L,
             contentUri = "content://media/external/video/media/1".toUri(),
             path = "/storage/emulated/0/DCIM/Camera/Screenshots/vacation_clip.mp4",
@@ -377,7 +390,7 @@ private val previewDuplicateGroup = DuplicateGroup(
             width = 1080,
             height = 1920
         ),
-        VideoFile(
+        VideoMedia(
             mediaId = 2L,
             contentUri = "content://media/external/video/media/2".toUri(),
             path = "/storage/emulated/0/Movies/Downloads/vacation_clip (1).mp4",
@@ -398,7 +411,7 @@ private fun VideoScannerScreenPreview() {
             uiState = VideoScannerViewModel.UiState(
                 totalVideos = 128,
                 totalDuplicates = 3,
-                duplicateGroups = listOf(previewDuplicateGroup)
+                duplicateGroups = listOf(previewVideoDuplicateGroup)
             ),
             onScanClick = {}
         )

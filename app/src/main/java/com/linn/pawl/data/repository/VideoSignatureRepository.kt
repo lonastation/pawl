@@ -2,8 +2,8 @@ package com.linn.pawl.data.repository
 
 import com.linn.pawl.data.local.VideoSignatureDao
 import com.linn.pawl.data.local.VideoSignatureEntity
+import com.linn.pawl.data.model.VideoMedia
 import com.linn.pawl.data.model.VideoSignature
-import com.linn.pawl.ui.video.VideoFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,13 +12,13 @@ class VideoSignatureRepository @Inject constructor(
     private val dao: VideoSignatureDao
 ) {
 
-    suspend fun getCached(video: VideoFile): VideoSignature? {
+    suspend fun getCached(video: VideoMedia): VideoSignature? {
         val entity = dao.getByPath(video.path) ?: return null
         if (!isCacheValid(entity, video)) return null
         return entity.toModel()
     }
 
-    suspend fun getCachedBatch(videos: List<VideoFile>): Map<String, VideoSignature> {
+    suspend fun getCachedBatch(videos: List<VideoMedia>): Map<String, VideoSignature> {
         if (videos.isEmpty()) return emptyMap()
 
         val videoByPath = videos.associateBy { it.path }
@@ -33,7 +33,7 @@ class VideoSignatureRepository @Inject constructor(
         }.toMap()
     }
 
-    suspend fun save(video: VideoFile, signature: VideoSignature) {
+    suspend fun save(video: VideoMedia, signature: VideoSignature) {
         dao.upsert(video.toEntity(signature))
     }
 
@@ -58,7 +58,7 @@ class VideoSignatureRepository @Inject constructor(
 
     suspend fun getCount(): Int = dao.count()
 
-    private fun isCacheValid(entity: VideoSignatureEntity, video: VideoFile): Boolean {
+    private fun isCacheValid(entity: VideoSignatureEntity, video: VideoMedia): Boolean {
         return entity.md5.isNotEmpty() &&
             entity.fileName == video.name &&
             entity.lastModified == video.lastModified &&
@@ -74,7 +74,7 @@ class VideoSignatureRepository @Inject constructor(
         )
     }
 
-    private fun VideoFile.toEntity(signature: VideoSignature): VideoSignatureEntity {
+    private fun VideoMedia.toEntity(signature: VideoSignature): VideoSignatureEntity {
         return VideoSignatureEntity(
             path = path,
             fileName = name,

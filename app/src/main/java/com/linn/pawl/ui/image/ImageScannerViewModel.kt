@@ -2,13 +2,17 @@ package com.linn.pawl.ui.image
 
 import android.content.ContentUris
 import android.content.Context
-import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.R
 import com.linn.pawl.data.model.DuplicateGroupKey
+import com.linn.pawl.data.model.ImageDuplicateGroup
+import com.linn.pawl.data.model.ImageMedia
+import com.linn.pawl.data.model.ScanLogLevel
 import com.linn.pawl.data.repository.IgnoredDuplicateGroupRepository
 import com.linn.pawl.data.repository.ImageSignatureRepository
+import com.linn.pawl.data.repository.ScanLogRepository
 import com.linn.pawl.service.ImageScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,34 +25,13 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
-data class ImageFile(
-    val mediaId: Long,
-    val contentUri: Uri,
-    val path: String,
-    val name: String,
-    val size: Long,
-    val width: Int = 0,
-    val height: Int = 0,
-    val dateCreated: Long = 0L,
-    val lastModified: Long = 0L,
-    val mimeType: String = ""
-) {
-    val isGif: Boolean
-        get() = mimeType.equals("image/gif", ignoreCase = true) ||
-            name.endsWith(".gif", ignoreCase = true) ||
-            path.endsWith(".gif", ignoreCase = true)
-}
-
-data class ImageDuplicateGroup(
-    val images: List<ImageFile>
-)
-
 @HiltViewModel
 class ImageScannerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val imageScanner: ImageScanner,
     private val signatureRepository: ImageSignatureRepository,
-    private val ignoredGroupRepository: IgnoredDuplicateGroupRepository
+    private val ignoredGroupRepository: IgnoredDuplicateGroupRepository,
+    private val scanLogRepository: ScanLogRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -102,7 +85,13 @@ class ImageScannerViewModel @Inject constructor(
                     duplicateGroups = visibleGroups,
                     totalDuplicates = totalDuplicates
                 )
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                scanLogRepository.append(
+                    mediaType = ScanLogRepository.MEDIA_IMAGE,
+                    level = ScanLogLevel.ERROR,
+                    message = context.getString(R.string.scan_log_image_aborted),
+                    throwable = t
+                )
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
                     duplicateGroups = emptyList(),
@@ -125,8 +114,8 @@ class ImageScannerViewModel @Inject constructor(
         }
     }
 
-    private fun getAllImages(): List<ImageFile> {
-        val images = mutableListOf<ImageFile>()
+    private fun getAllImages(): List<ImageMedia> {
+        val images = mutableListOf<ImageMedia>()
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DATA,
@@ -165,14 +154,14 @@ class ImageScannerViewModel @Inject constructor(
                     val mediaId = it.getLong(idColumn)
                     val mediaStoreModified = it.getLong(dateModifiedColumn) * 1000L
                     images.add(
-                        ImageFile(
+                        ImageMedia(
                             mediaId = mediaId,
                             contentUri = ContentUris.withAppendedId(
                                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                                 mediaId
                             ),
                             path = path,
-                            name = it.getString(nameColumn) ?: "unknown",
+                            name = it.getString(nameColumn) ?: context.getString(R.string.media_name_unknown),
                             size = it.getLong(sizeColumn),
                             width = it.getInt(widthColumn),
                             height = it.getInt(heightColumn),
@@ -194,7 +183,7 @@ class ImageScannerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedImageIds = updated)
     }
 
-    fun getSelectedImages(): List<ImageFile> {
+    fun getSelectedImages(): List<ImageMedia> {
         val selected = _uiState.value.selectedImageIds
         return _uiState.value.duplicateGroups
             .flatMap { it.images }

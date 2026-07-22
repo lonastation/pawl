@@ -2,12 +2,16 @@ package com.linn.pawl.ui.video
 
 import android.content.ContentUris
 import android.content.Context
-import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.linn.pawl.R
 import com.linn.pawl.data.model.DuplicateGroupKey
+import com.linn.pawl.data.model.ScanLogLevel
+import com.linn.pawl.data.model.VideoDuplicateGroup
+import com.linn.pawl.data.model.VideoMedia
 import com.linn.pawl.data.repository.IgnoredDuplicateGroupRepository
+import com.linn.pawl.data.repository.ScanLogRepository
 import com.linn.pawl.data.repository.VideoSignatureRepository
 import com.linn.pawl.service.VideoScanner
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +30,8 @@ class VideoScannerViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val videoScanner: VideoScanner,
     private val signatureRepository: VideoSignatureRepository,
-    private val ignoredGroupRepository: IgnoredDuplicateGroupRepository
+    private val ignoredGroupRepository: IgnoredDuplicateGroupRepository,
+    private val scanLogRepository: ScanLogRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UiState())
@@ -79,7 +84,13 @@ class VideoScannerViewModel @Inject constructor(
                     duplicateGroups = visibleGroups,
                     totalDuplicates = totalDuplicates
                 )
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                scanLogRepository.append(
+                    mediaType = ScanLogRepository.MEDIA_VIDEO,
+                    level = ScanLogLevel.ERROR,
+                    message = context.getString(R.string.scan_log_video_aborted),
+                    throwable = t
+                )
                 _uiState.value = _uiState.value.copy(
                     isScanning = false,
                     duplicateGroups = emptyList(),
@@ -90,8 +101,8 @@ class VideoScannerViewModel @Inject constructor(
     }
 
     private suspend fun filterIgnoredGroups(
-        groups: List<DuplicateGroup>
-    ): List<DuplicateGroup> {
+        groups: List<VideoDuplicateGroup>
+    ): List<VideoDuplicateGroup> {
         val ignoredKeys = ignoredGroupRepository.getIgnoredKeys(DuplicateGroupKey.MEDIA_VIDEO)
         if (ignoredKeys.isEmpty()) return groups
         return groups.filter { group ->
@@ -102,8 +113,8 @@ class VideoScannerViewModel @Inject constructor(
         }
     }
 
-    private fun getAllVideos(): List<VideoFile> {
-        val videos = mutableListOf<VideoFile>()
+    private fun getAllVideos(): List<VideoMedia> {
+        val videos = mutableListOf<VideoMedia>()
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DATA,
@@ -142,14 +153,14 @@ class VideoScannerViewModel @Inject constructor(
                     val mediaId = it.getLong(idColumn)
                     val mediaStoreModified = it.getLong(dateModifiedColumn) * 1000L
                     videos.add(
-                        VideoFile(
+                        VideoMedia(
                             mediaId = mediaId,
                             contentUri = ContentUris.withAppendedId(
                                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
                                 mediaId
                             ),
                             path = path,
-                            name = it.getString(nameColumn) ?: "unknown",
+                            name = it.getString(nameColumn) ?: context.getString(R.string.media_name_unknown),
                             size = it.getLong(sizeColumn),
                             duration = it.getLong(durationColumn),
                             width = it.getInt(widthColumn),
@@ -171,14 +182,14 @@ class VideoScannerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedVideoIds = updated)
     }
 
-    fun getSelectedVideos(): List<VideoFile> {
+    fun getSelectedVideos(): List<VideoMedia> {
         val selected = _uiState.value.selectedVideoIds
         return _uiState.value.duplicateGroups
             .flatMap { it.videos }
             .filter { it.mediaId in selected }
     }
 
-    fun ignoreGroup(group: DuplicateGroup) {
+    fun ignoreGroup(group: VideoDuplicateGroup) {
         viewModelScope.launch {
             ignoredGroupRepository.ignore(
                 DuplicateGroupKey.MEDIA_VIDEO,
@@ -220,7 +231,7 @@ class VideoScannerViewModel @Inject constructor(
 
         val updatedGroups = _uiState.value.duplicateGroups.mapNotNull { group ->
             val remaining = group.videos.filter { it.mediaId !in deletedIds }
-            if (remaining.size >= 2) DuplicateGroup(remaining) else null
+            if (remaining.size >= 2) VideoDuplicateGroup(remaining) else null
         }
         val totalDuplicates = updatedGroups.sumOf { it.videos.size } - updatedGroups.size
         _uiState.value = _uiState.value.copy(
@@ -236,24 +247,7 @@ class VideoScannerViewModel @Inject constructor(
         val totalVideos: Int = 0,
         val scannedCount: Int = 0,
         val totalDuplicates: Int = 0,
-        val duplicateGroups: List<DuplicateGroup> = emptyList(),
+        val duplicateGroups: List<VideoDuplicateGroup> = emptyList(),
         val selectedVideoIds: Set<Long> = emptySet()
     )
 }
-
-data class VideoFile(
-    val mediaId: Long,
-    val contentUri: Uri,
-    val path: String,
-    val name: String,
-    val size: Long,
-    val duration: Long,
-    val width: Int = 0,
-    val height: Int = 0,
-    val dateCreated: Long = 0L,
-    val lastModified: Long = 0L
-)
-
-data class DuplicateGroup(
-    val videos: List<VideoFile>
-)

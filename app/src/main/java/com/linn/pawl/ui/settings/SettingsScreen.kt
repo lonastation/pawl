@@ -25,10 +25,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.linn.pawl.R
 import com.linn.pawl.ui.theme.AppBrown
 import com.linn.pawl.ui.theme.AppRed
 import com.linn.pawl.ui.theme.PawlTheme
@@ -58,7 +60,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "VM-LIKE",
+                        text = stringResource(R.string.brand_name),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.offset(y = 8.dp)
@@ -71,7 +73,7 @@ fun SettingsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -97,21 +99,21 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "Video",
+                text = stringResource(R.string.settings_section_video),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppBrown
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Cached fingerprints: $videoFingerprintCount",
+                text = stringResource(R.string.settings_cached_fingerprints, videoFingerprintCount),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Clear cached fingerprints and rescan all videos.",
+                text = stringResource(R.string.settings_regenerate_video_desc),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -129,19 +131,19 @@ fun SettingsScreen(
                     if (!isVideoScanning) AppRed else AppRed.copy(alpha = 0.38f)
                 ),
             ) {
-                Text("Regenerate Video Fingerprints", fontSize = 16.sp)
+                Text(stringResource(R.string.settings_regenerate_video), fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Ignored groups: $videoIgnoredGroupCount",
+                text = stringResource(R.string.settings_ignored_groups, videoIgnoredGroupCount),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Show ignored video groups again on the next scan.",
+                text = stringResource(R.string.settings_clear_ignored_video_desc),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -163,27 +165,27 @@ fun SettingsScreen(
                     }
                 ),
             ) {
-                Text("Clear Ignored Video Groups", fontSize = 16.sp)
+                Text(stringResource(R.string.settings_clear_ignored_video), fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Image",
+                text = stringResource(R.string.settings_section_image),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppBrown
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Cached fingerprints: $imageFingerprintCount",
+                text = stringResource(R.string.settings_cached_fingerprints, imageFingerprintCount),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Clear cached fingerprints and rescan all images.",
+                text = stringResource(R.string.settings_regenerate_image_desc),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -201,19 +203,19 @@ fun SettingsScreen(
                     if (!isImageScanning) AppRed else AppRed.copy(alpha = 0.38f)
                 ),
             ) {
-                Text("Regenerate Image Fingerprints", fontSize = 16.sp)
+                Text(stringResource(R.string.settings_regenerate_image), fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Ignored groups: $imageIgnoredGroupCount",
+                text = stringResource(R.string.settings_ignored_groups, imageIgnoredGroupCount),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Show ignored image groups again on the next scan.",
+                text = stringResource(R.string.settings_clear_ignored_image_desc),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -235,13 +237,13 @@ fun SettingsScreen(
                     }
                 ),
             ) {
-                Text("Clear Ignored Image Groups", fontSize = 16.sp)
+                Text(stringResource(R.string.settings_clear_ignored_image), fontSize = 16.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Storage",
+                text = stringResource(R.string.settings_section_storage),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppBrown
@@ -249,9 +251,9 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = if (hasAllFilesAccess) {
-                    "All files access: granted"
+                    stringResource(R.string.settings_access_granted)
                 } else {
-                    "All files access: not granted"
+                    stringResource(R.string.settings_access_not_granted)
                 },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -260,9 +262,9 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (hasAllFilesAccess) {
-                    "Trash files can restore to their original folders."
+                    stringResource(R.string.settings_access_granted_desc)
                 } else {
-                    "Without this, restore is limited to DCIM/Pictures/Movies."
+                    stringResource(R.string.settings_access_not_granted_desc)
                 },
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -278,7 +280,7 @@ fun SettingsScreen(
                     colors = regenerateButtonColors,
                     border = BorderStroke(1.dp, AppRed),
                 ) {
-                    Text("Grant All Files Access", fontSize = 16.sp)
+                    Text(stringResource(R.string.settings_grant_access), fontSize = 16.sp)
                 }
             }
         }

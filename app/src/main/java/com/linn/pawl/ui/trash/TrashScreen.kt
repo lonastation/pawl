@@ -49,11 +49,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.linn.pawl.R
 import com.linn.pawl.data.local.TrashMediaEntity
 import com.linn.pawl.data.model.DuplicateGroupKey
 import com.linn.pawl.ui.theme.AppBrown
@@ -90,7 +92,7 @@ fun TrashScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "VM-LIKE",
+                        text = stringResource(R.string.brand_name),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.offset(y = 8.dp)
@@ -103,7 +105,7 @@ fun TrashScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -129,7 +131,7 @@ fun TrashScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 if (!uiState.hasAllFilesAccess) {
                     Text(
-                        text = "All files access is off. Restore may land in Pictures/Movies instead of the original folder.",
+                        text = stringResource(R.string.trash_access_banner),
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -143,7 +145,7 @@ fun TrashScreen(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AppBrown),
                         border = BorderStroke(1.dp, AppBrown)
                     ) {
-                        Text("Grant All Files Access", fontSize = 16.sp)
+                        Text(stringResource(R.string.trash_grant_access), fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -159,7 +161,7 @@ fun TrashScreen(
                             contentColor = AppWhite
                         )
                     ) {
-                        Text("Delete All", fontSize = 16.sp)
+                        Text(stringResource(R.string.trash_delete_all), fontSize = 16.sp)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -174,7 +176,7 @@ fun TrashScreen(
                     FilterChip(
                         selected = uiState.filter == TrashFilter.All,
                         onClick = { onFilterChange(TrashFilter.All) },
-                        label = { Text("All") },
+                        label = { Text(stringResource(R.string.trash_filter_all)) },
                         colors = filterChipColors,
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
@@ -186,7 +188,7 @@ fun TrashScreen(
                     FilterChip(
                         selected = uiState.filter == TrashFilter.Images,
                         onClick = { onFilterChange(TrashFilter.Images) },
-                        label = { Text("Images") },
+                        label = { Text(stringResource(R.string.trash_filter_images)) },
                         colors = filterChipColors,
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
@@ -198,7 +200,7 @@ fun TrashScreen(
                     FilterChip(
                         selected = uiState.filter == TrashFilter.Videos,
                         onClick = { onFilterChange(TrashFilter.Videos) },
-                        label = { Text("Videos") },
+                        label = { Text(stringResource(R.string.trash_filter_videos)) },
                         colors = filterChipColors,
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
@@ -226,7 +228,10 @@ fun TrashScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Loading...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(R.string.loading),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
@@ -236,7 +241,7 @@ fun TrashScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Trash is empty",
+                                text = stringResource(R.string.trash_empty),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 16.sp
                             )
@@ -254,7 +259,12 @@ fun TrashScreen(
                             if (uiState.filter == TrashFilter.All) {
                                 if (uiState.images.isNotEmpty()) {
                                     item {
-                                        SectionHeader("Images (${uiState.images.size})")
+                                        SectionHeader(
+                                            stringResource(
+                                                R.string.trash_section_images,
+                                                uiState.images.size
+                                            )
+                                        )
                                     }
                                     items(uiState.images, key = { it.id }) { item ->
                                         TrashMediaCard(
@@ -267,7 +277,12 @@ fun TrashScreen(
                                 }
                                 if (uiState.videos.isNotEmpty()) {
                                     item {
-                                        SectionHeader("Videos (${uiState.videos.size})")
+                                        SectionHeader(
+                                            stringResource(
+                                                R.string.trash_section_videos,
+                                                uiState.videos.size
+                                            )
+                                        )
                                     }
                                     items(uiState.videos, key = { it.id }) { item ->
                                         TrashMediaCard(
@@ -314,7 +329,13 @@ fun TrashScreen(
                         ),
                         border = BorderStroke(1.dp, AppBrown)
                     ) {
-                        Text("Restore (${uiState.selectedIds.size})", fontSize = 16.sp)
+                        Text(
+                            stringResource(
+                                R.string.trash_restore_selected,
+                                uiState.selectedIds.size
+                            ),
+                            fontSize = 16.sp
+                        )
                     }
                     Button(
                         onClick = onPermanentlyDeleteSelected,
@@ -328,7 +349,13 @@ fun TrashScreen(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Text("Delete (${uiState.selectedIds.size})", fontSize = 16.sp)
+                        Text(
+                            stringResource(
+                                R.string.trash_delete_selected,
+                                uiState.selectedIds.size
+                            ),
+                            fontSize = 16.sp
+                        )
                     }
                 }
             }
@@ -383,7 +410,11 @@ private fun TrashMediaCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (item.mediaType == DuplicateGroupKey.MEDIA_IMAGE) "Image" else "Video",
+                    text = if (item.mediaType == DuplicateGroupKey.MEDIA_IMAGE) {
+                        stringResource(R.string.label_image)
+                    } else {
+                        stringResource(R.string.label_video)
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

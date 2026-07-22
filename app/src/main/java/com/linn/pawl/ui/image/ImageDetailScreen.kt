@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import com.linn.pawl.R
+import com.linn.pawl.data.model.ImageMedia
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatAspectRatio
 import com.linn.pawl.ui.util.formatDateTime
@@ -56,7 +59,7 @@ import kotlin.math.max
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageDetailScreen(
-    image: ImageFile,
+    image: ImageMedia,
     onBack: () -> Unit
 ) {
     val aspectRatio = if (image.width > 0 && image.height > 0) {
@@ -82,7 +85,7 @@ fun ImageDetailScreen(
                     IconButton(onClick = onBack, modifier = Modifier.offset(y = 8.dp)) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -112,16 +115,29 @@ fun ImageDetailScreen(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DetailInfoRow(label = "File Name", value = image.name)
-                DetailInfoRow(label = "File Path", value = formatPathForDisplay(image.path))
-                DetailInfoRow(label = "File Size", value = formatFileSize(image.size))
-                DetailInfoRow(label = "Created", value = formatDateTime(image.dateCreated))
+                DetailInfoRow(label = stringResource(R.string.label_file_name), value = image.name)
                 DetailInfoRow(
-                    label = "Dimensions",
-                    value = "${image.width} × ${image.height}"
+                    label = stringResource(R.string.label_file_path),
+                    value = formatPathForDisplay(image.path)
                 )
                 DetailInfoRow(
-                    label = "Aspect Ratio",
+                    label = stringResource(R.string.label_file_size),
+                    value = formatFileSize(image.size)
+                )
+                DetailInfoRow(
+                    label = stringResource(R.string.label_created),
+                    value = formatDateTime(image.dateCreated)
+                )
+                DetailInfoRow(
+                    label = stringResource(R.string.label_dimensions),
+                    value = stringResource(
+                        R.string.dimensions_format,
+                        image.width,
+                        image.height
+                    )
+                )
+                DetailInfoRow(
+                    label = stringResource(R.string.label_aspect_ratio),
                     value = formatAspectRatio(image.width, image.height)
                 )
             }
@@ -214,7 +230,7 @@ private fun ImagePreview(
 private fun ImageDetailScreenPreview() {
     PawlTheme {
         ImageDetailScreen(
-            image = ImageFile(
+            image = ImageMedia(
                 mediaId = 1L,
                 contentUri = "content://media/external/images/media/1".toUri(),
                 path = "/storage/emulated/0/DCIM/Camera/photo.jpg",

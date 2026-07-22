@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.linn.pawl.data.local.IgnoredDuplicateGroupDao
 import com.linn.pawl.data.local.ImageSignatureDao
 import com.linn.pawl.data.local.PawlDatabase
+import com.linn.pawl.data.local.ScanLogDao
 import com.linn.pawl.data.local.TrashMediaDao
 import com.linn.pawl.data.local.VideoSignatureDao
 import dagger.Module
@@ -105,6 +106,24 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS scan_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    mediaType TEXT NOT NULL,
+                    level TEXT NOT NULL,
+                    path TEXT,
+                    message TEXT NOT NULL,
+                    detail TEXT
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun providePawlDatabase(
@@ -121,7 +140,8 @@ object DatabaseModule {
                 MIGRATION_3_4,
                 MIGRATION_4_5,
                 MIGRATION_5_6,
-                MIGRATION_6_7
+                MIGRATION_6_7,
+                MIGRATION_7_8
             )
             .build()
     }
@@ -144,5 +164,10 @@ object DatabaseModule {
     @Provides
     fun provideTrashMediaDao(database: PawlDatabase): TrashMediaDao {
         return database.trashMediaDao()
+    }
+
+    @Provides
+    fun provideScanLogDao(database: PawlDatabase): ScanLogDao {
+        return database.scanLogDao()
     }
 }

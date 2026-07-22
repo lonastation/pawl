@@ -1,12 +1,17 @@
 package com.linn.pawl.service
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.core.graphics.scale
+import com.linn.pawl.R
+import com.linn.pawl.data.model.ImageDuplicateGroup
+import com.linn.pawl.data.model.ImageMedia
 import com.linn.pawl.data.model.ImageSignature
+import com.linn.pawl.data.model.ScanLogLevel
 import com.linn.pawl.data.repository.ImageSignatureRepository
-import com.linn.pawl.ui.image.ImageDuplicateGroup
-import com.linn.pawl.ui.image.ImageFile
+import com.linn.pawl.data.repository.ScanLogRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
@@ -20,14 +25,16 @@ import kotlin.math.sqrt
 import androidx.core.graphics.createBitmap
 
 class ImageScanner @Inject constructor(
-    private val signatureRepository: ImageSignatureRepository
+    @param:ApplicationContext private val context: Context,
+    private val signatureRepository: ImageSignatureRepository,
+    private val scanLogRepository: ScanLogRepository
 ) {
 
     /** Max Hamming distance per hash (64-bit). Both dHash and pHash must pass. */
     private val maxHammingDistance = 6
 
     suspend fun findSimilarImages(
-        images: List<ImageFile>,
+        images: List<ImageMedia>,
         onProgress: (Int) -> Unit
     ): List<ImageDuplicateGroup> = withContext(Dispatchers.IO) {
         if (images.size < 2) return@withContext emptyList()
@@ -47,7 +54,7 @@ class ImageScanner @Inject constructor(
     }
 
     private fun signaturesFor(
-        images: List<ImageFile>,
+        images: List<ImageMedia>,
         signatureCache: Map<String, ImageSignature>
     ): Map<String, ImageSignature> {
         if (images.size < 2) return emptyMap()
@@ -56,7 +63,7 @@ class ImageScanner @Inject constructor(
     }
 
     private suspend fun loadOrComputeSignatures(
-        images: List<ImageFile>,
+        images: List<ImageMedia>,
         onProgress: (Int) -> Unit
     ): Map<String, ImageSignature> {
         val signatures = signatureRepository.getCachedBatch(images).toMutableMap()
@@ -79,7 +86,7 @@ class ImageScanner @Inject constructor(
 
     private fun findVisualSimilarGroups(
         signatures: Map<String, ImageSignature>,
-        imageByPath: Map<String, ImageFile>
+        imageByPath: Map<String, ImageMedia>
     ): List<ImageDuplicateGroup> {
         val groups = mutableListOf<ImageDuplicateGroup>()
         val processed = mutableSetOf<String>()
@@ -89,7 +96,7 @@ class ImageScanner @Inject constructor(
             val (path1, sig1) = signatureList[i]
             if (path1 in processed) continue
 
-            val similar = mutableListOf<ImageFile>()
+            val similar = mutableListOf<ImageMedia>()
             imageByPath[path1]?.let { similar.add(it) }
 
             for (j in i + 1 until signatureList.size) {
@@ -116,7 +123,7 @@ class ImageScanner @Inject constructor(
             hammingDistance(sig1.pHash, sig2.pHash) <= maxHammingDistance
     }
 
-    private fun extractSignature(image: ImageFile): ImageSignature? {
+    private suspend fun extractSignature(image: ImageMedia): ImageSignature? {
         return try {
             val md5 = computeFileMd5(image.path) ?: return null
             // BitmapFactory decodes only the first frame for GIFs.
@@ -134,8 +141,14 @@ class ImageScanner @Inject constructor(
             } finally {
                 bitmap.recycle()
             }
-        } catch (_: Throwable) {
-            // Skip corrupt / pathological images instead of crashing the scan.
+        } catch (t: Throwable) {
+            scanLogRepository.append(
+                mediaType = ScanLogRepository.MEDIA_IMAGE,
+                level = ScanLogLevel.ERROR,
+                message = context.getString(R.string.scan_log_image_signature_failed),
+                path = image.path,
+                throwable = t
+            )
             null
         }
     }

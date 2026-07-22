@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,6 +43,8 @@ import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.linn.pawl.R
+import com.linn.pawl.data.model.VideoMedia
 import com.linn.pawl.ui.theme.PawlTheme
 import com.linn.pawl.ui.util.formatAspectRatio
 import com.linn.pawl.ui.util.formatDateTime
@@ -52,7 +55,7 @@ import com.linn.pawl.ui.util.formatPathForDisplay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoDetailScreen(
-    video: VideoFile,
+    video: VideoMedia,
     onBack: () -> Unit
 ) {
     val aspectRatio = if (video.width > 0 && video.height > 0) {
@@ -78,7 +81,7 @@ fun VideoDetailScreen(
                     IconButton(onClick = onBack, modifier = Modifier.offset(y = 8.dp)) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
@@ -108,15 +111,27 @@ fun VideoDetailScreen(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DetailInfoRow(label = "File Name", value = video.name)
-                DetailInfoRow(label = "File Path", value = formatPathForDisplay(video.path))
-                DetailInfoRow(label = "File Size", value = formatFileSize(video.size))
-                DetailInfoRow(label = "Created", value = formatDateTime(video.dateCreated))
+                DetailInfoRow(label = stringResource(R.string.label_file_name), value = video.name)
                 DetailInfoRow(
-                    label = "Aspect Ratio",
+                    label = stringResource(R.string.label_file_path),
+                    value = formatPathForDisplay(video.path)
+                )
+                DetailInfoRow(
+                    label = stringResource(R.string.label_file_size),
+                    value = formatFileSize(video.size)
+                )
+                DetailInfoRow(
+                    label = stringResource(R.string.label_created),
+                    value = formatDateTime(video.dateCreated)
+                )
+                DetailInfoRow(
+                    label = stringResource(R.string.label_aspect_ratio),
                     value = formatAspectRatio(video.width, video.height)
                 )
-                DetailInfoRow(label = "Duration", value = formatDuration(video.duration))
+                DetailInfoRow(
+                    label = stringResource(R.string.label_duration),
+                    value = formatDuration(video.duration)
+                )
             }
         }
     }
@@ -178,7 +193,7 @@ private fun VideoPlayer(
 private fun VideoDetailScreenPreview() {
     PawlTheme {
         VideoDetailScreen(
-            video = VideoFile(
+            video = VideoMedia(
                 mediaId = 1L,
                 contentUri = "content://media/external/video/media/1".toUri(),
                 path = "/storage/emulated/0/DCIM/Camera/Screenshots/vacation_clip.mp4",

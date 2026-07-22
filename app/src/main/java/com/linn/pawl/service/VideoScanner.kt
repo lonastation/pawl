@@ -1,12 +1,17 @@
 package com.linn.pawl.service
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import androidx.core.graphics.scale
+import com.linn.pawl.R
+import com.linn.pawl.data.model.ScanLogLevel
+import com.linn.pawl.data.model.VideoDuplicateGroup
+import com.linn.pawl.data.model.VideoMedia
 import com.linn.pawl.data.model.VideoSignature
+import com.linn.pawl.data.repository.ScanLogRepository
 import com.linn.pawl.data.repository.VideoSignatureRepository
-import com.linn.pawl.ui.video.DuplicateGroup
-import com.linn.pawl.ui.video.VideoFile
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.FileInputStream
@@ -14,7 +19,9 @@ import java.security.MessageDigest
 import javax.inject.Inject
 
 class VideoScanner @Inject constructor(
-    private val signatureRepository: VideoSignatureRepository
+    @param:ApplicationContext private val context: Context,
+    private val signatureRepository: VideoSignatureRepository,
+    private val scanLogRepository: ScanLogRepository
 ) {
 
     // 时长容差（毫秒），考虑到编码精度，允许微小差异
@@ -32,9 +39,9 @@ class VideoScanner @Inject constructor(
     private val minMatchingFrameRatio = 0.8
 
     suspend fun findDuplicateVideos(
-        videos: List<VideoFile>,
+        videos: List<VideoMedia>,
         onProgress: (Int) -> Unit
-    ): List<DuplicateGroup> = withContext(Dispatchers.IO) {
+    ): List<VideoDuplicateGroup> = withContext(Dispatchers.IO) {
         if (videos.isEmpty()) return@withContext emptyList()
 
         signatureRepository.deleteStale(videos.map { it.path })
@@ -52,7 +59,7 @@ class VideoScanner @Inject constructor(
     }
 
     private suspend fun loadOrComputeSignatures(
-        videos: List<VideoFile>,
+        videos: List<VideoMedia>,
         onProgress: (Int) -> Unit
     ): Map<String, VideoSignature> {
         val signatures = signatureRepository.getCachedBatch(videos).toMutableMap()
@@ -73,8 +80,8 @@ class VideoScanner @Inject constructor(
         return signatures
     }
 
-    private fun buildCandidateGroups(videos: List<VideoFile>): List<List<VideoFile>> {
-        val candidateGroups = mutableListOf<List<VideoFile>>()
+    private fun buildCandidateGroups(videos: List<VideoMedia>): List<List<VideoMedia>> {
+        val candidateGroups = mutableListOf<List<VideoMedia>>()
         groupByDuration(videos).forEach { group ->
             candidateGroups.addAll(groupBySize(group))
         }
@@ -82,10 +89,10 @@ class VideoScanner @Inject constructor(
     }
 
     private fun compareCandidateGroups(
-        candidateGroups: List<List<VideoFile>>,
+        candidateGroups: List<List<VideoMedia>>,
         signatureCache: Map<String, VideoSignature>
-    ): List<DuplicateGroup> {
-        val resultGroups = mutableListOf<DuplicateGroup>()
+    ): List<VideoDuplicateGroup> {
+        val resultGroups = mutableListOf<VideoDuplicateGroup>()
         candidateGroups.forEach { candidateGroup ->
             val signatures = candidateGroup.mapNotNull { video ->
                 signatureCache[video.path]?.let { video.path to it }
@@ -100,8 +107,8 @@ class VideoScanner @Inject constructor(
     /**
      * 按时长分组，时长相差在容差范围内的归为一组
      */
-    private fun groupByDuration(videos: List<VideoFile>): List<List<VideoFile>> {
-        val groups = mutableListOf<List<VideoFile>>()
+    private fun groupByDuration(videos: List<VideoMedia>): List<List<VideoMedia>> {
+        val groups = mutableListOf<List<VideoMedia>>()
         val processed = mutableSetOf<String>()
 
         for (i in videos.indices) {
@@ -131,8 +138,8 @@ class VideoScanner @Inject constructor(
     /**
      * 在时长相近的组内，按文件大小进一步分组
      */
-    private fun groupBySize(videos: List<VideoFile>): List<List<VideoFile>> {
-        val groups = mutableListOf<List<VideoFile>>()
+    private fun groupBySize(videos: List<VideoMedia>): List<List<VideoMedia>> {
+        val groups = mutableListOf<List<VideoMedia>>()
         val processed = mutableSetOf<String>()
 
         for (i in videos.indices) {
@@ -173,11 +180,11 @@ class VideoScanner @Inject constructor(
 
     private fun findDuplicatesInGroup(
         signatures: Map<String, VideoSignature>,
-        videoByPath: Map<String, VideoFile>
-    ): List<DuplicateGroup> {
+        videoByPath: Map<String, VideoMedia>
+    ): List<VideoDuplicateGroup> {
         if (signatures.size < 2) return emptyList()
 
-        val groups = mutableListOf<DuplicateGroup>()
+        val groups = mutableListOf<VideoDuplicateGroup>()
         val processed = mutableSetOf<String>()
 
         // Stage A: cluster by exact MD5 match
@@ -190,7 +197,7 @@ class VideoScanner @Inject constructor(
 
             val duplicates = entries.mapNotNull { (path, _) -> videoByPath[path] }
             if (duplicates.size >= 2) {
-                groups.add(DuplicateGroup(duplicates))
+                groups.add(VideoDuplicateGroup(duplicates))
                 processed.addAll(entries.map { it.key })
             }
         }
@@ -204,11 +211,11 @@ class VideoScanner @Inject constructor(
 
     private fun findVisualDuplicatesInGroup(
         signatures: Map<String, VideoSignature>,
-        videoByPath: Map<String, VideoFile>
-    ): List<DuplicateGroup> {
+        videoByPath: Map<String, VideoMedia>
+    ): List<VideoDuplicateGroup> {
         if (signatures.size < 2) return emptyList()
 
-        val groups = mutableListOf<DuplicateGroup>()
+        val groups = mutableListOf<VideoDuplicateGroup>()
         val processed = mutableSetOf<String>()
 
         val signatureList = signatures.entries.toList()
@@ -216,7 +223,7 @@ class VideoScanner @Inject constructor(
             val (path1, sig1) = signatureList[i]
             if (path1 in processed) continue
 
-            val duplicates = mutableListOf<VideoFile>()
+            val duplicates = mutableListOf<VideoMedia>()
             videoByPath[path1]?.let { duplicates.add(it) }
             for (j in i + 1 until signatureList.size) {
                 val (path2, sig2) = signatureList[j]
@@ -229,7 +236,7 @@ class VideoScanner @Inject constructor(
             }
 
             if (duplicates.size > 1) {
-                groups.add(DuplicateGroup(duplicates))
+                groups.add(VideoDuplicateGroup(duplicates))
             }
             processed.add(path1)
         }
@@ -240,18 +247,29 @@ class VideoScanner @Inject constructor(
     /**
      * 计算 MD5 文件哈希与 dHash 视觉指纹。
      */
-    private fun extractSignature(video: VideoFile): VideoSignature? {
+    private suspend fun extractSignature(video: VideoMedia): VideoSignature? {
         if (video.duration <= 0) return null
 
-        val md5 = computeFileMd5(video.path) ?: return null
-        val frameHashes = extractFrameHashes(video) ?: return null
+        return try {
+            val md5 = computeFileMd5(video.path) ?: return null
+            val frameHashes = extractFrameHashes(video) ?: return null
 
-        return VideoSignature(
-            md5 = md5,
-            frameHashes = frameHashes,
-            width = video.width,
-            height = video.height
-        )
+            VideoSignature(
+                md5 = md5,
+                frameHashes = frameHashes,
+                width = video.width,
+                height = video.height
+            )
+        } catch (t: Throwable) {
+            scanLogRepository.append(
+                mediaType = ScanLogRepository.MEDIA_VIDEO,
+                level = ScanLogLevel.ERROR,
+                message = context.getString(R.string.scan_log_video_signature_failed),
+                path = video.path,
+                throwable = t
+            )
+            null
+        }
     }
 
     private fun computeFileMd5(path: String): String? {
@@ -276,7 +294,7 @@ class VideoScanner @Inject constructor(
     /**
      * 在多个时间点解码帧，计算 dHash 作为视觉指纹。
      */
-    private fun extractFrameHashes(video: VideoFile): List<Long>? {
+    private suspend fun extractFrameHashes(video: VideoMedia): List<Long>? {
         var retriever: MediaMetadataRetriever? = null
         try {
             retriever = MediaMetadataRetriever().apply {
@@ -300,7 +318,14 @@ class VideoScanner @Inject constructor(
 
             if (frameHashes.size < minFrameSamples) return null
             return frameHashes
-        } catch (_: Exception) {
+        } catch (t: Exception) {
+            scanLogRepository.append(
+                mediaType = ScanLogRepository.MEDIA_VIDEO,
+                level = ScanLogLevel.WARN,
+                message = context.getString(R.string.scan_log_video_frames_failed),
+                path = video.path,
+                throwable = t
+            )
             return null
         } finally {
             retriever?.release()
