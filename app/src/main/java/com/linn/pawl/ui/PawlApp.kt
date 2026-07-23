@@ -6,6 +6,8 @@ import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -216,6 +218,10 @@ fun PawlApp(
     ) {
         composable(
             route = AppRoutes.HOME,
+            enterTransition = { EnterTransition.None },  // 显式指定无动画
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None },
             arguments = listOf(navArgument("tab") { type = NavType.StringType })
         ) { entry ->
             val selectedTab = AppRoutes.appTabFromRoute(entry.arguments?.getString("tab"))
@@ -306,6 +312,7 @@ fun PawlApp(
                             },
                             onOpenDrawer = openDrawer,
                         )
+
                         AppTab.Image -> ImageScannerScreen(
                             modifier = Modifier.padding(innerPadding),
                             uiState = imageUiState,
